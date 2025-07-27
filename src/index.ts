@@ -1,27 +1,31 @@
-/**
- * Main entry point for nest-inngest library
- */
-
-// Core module
-export * from "./inngest.module";
+// Main module
+export { InngestModule } from "./inngest.module";
 
 // Services
-export * from "./services";
+export { InngestService } from "./services/inngest.service";
+export { FunctionRegistry } from "./services/function-registry.service";
+export { ExecutionContextService } from "./services/execution-context.service";
+export { ScopeManagerService } from "./services/scope-manager.service";
+export { SignatureVerificationService } from "./services/signature-verification.service";
 
 // Controllers
-export * from "./controllers";
+export { InngestController } from "./controllers/inngest.controller";
 
 // Decorators
-export * from "./decorators";
+export { InngestFunction } from "./decorators/inngest-function.decorator";
 
-// Interfaces and types
+// Interfaces
 export * from "./interfaces";
 
 // Constants
-export * from "./constants";
-
-// Utilities
-export * from "./utils";
+export { INNGEST_CONFIG } from "./constants";
 
 // Errors
 export * from "./errors";
+
+// Utils
+export {
+  validateConfig,
+  mergeWithDefaults,
+  validateAndMergeConfig,
+} from "./utils/config-validation";

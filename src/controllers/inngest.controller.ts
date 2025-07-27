@@ -15,8 +15,10 @@ import { FunctionRegistry } from "../services/function-registry.service";
 import { ExecutionContextService } from "../services/execution-context.service";
 import { SignatureVerificationService } from "../services/signature-verification.service";
 import { MergedInngestConfig } from "../utils/config-validation";
-import { InngestWebhookError, InngestRuntimeError } from "../errors";
+import { InngestWebhookError, InngestRuntimeError, InngestTimeoutError, InngestRetryError } from "../errors";
 import { INNGEST_CONFIG, ERROR_MESSAGES } from "../constants";
+import { errorHandler, ErrorSeverity, withRetry } from "../utils/error-handler";
+import { EnhancedLogger, LoggerFactory } from "../services/enhanced-logger.service";
 import { InngestEvent } from "../interfaces/inngest-event.interface";
 
 /**
@@ -60,16 +62,19 @@ interface InngestWebhookRequest {
 /**
  * Controller for handling Inngest webhooks with enhanced security
  */
-@Controller()
+@Controller('/api/inngest')
 export class InngestController {
-  private readonly logger = new Logger(InngestController.name);
+  private readonly logger: EnhancedLogger;
+  private readonly loggerFactory = new LoggerFactory();
 
   constructor(
     @Inject(INNGEST_CONFIG) private readonly config: MergedInngestConfig,
     private readonly functionRegistry: FunctionRegistry,
     private readonly executionContext: ExecutionContextService,
     private readonly signatureVerification: SignatureVerificationService
-  ) {}
+  ) {
+    this.logger = this.loggerFactory.createServiceLogger('InngestController');
+  }
 
   /**
    * Handles POST requests from Inngest (function execution)
@@ -81,10 +86,20 @@ export class InngestController {
     @Headers() headers: Record<string, string>,
     @Body() body: InngestWebhookRequest
   ): Promise<void> {
+    const { function_id, run_id, attempt = 1 } = body;
+    const startTime = Date.now();
+
+    // Create function-specific logger
+    const functionLogger = this.loggerFactory.createFunctionLogger(function_id, run_id);
+
     try {
-      this.logger.debug(
-        `Received POST webhook for function: ${body.function_id}`
-      );
+      // Log webhook received
+      this.logger.logWebhook('POST', function_id, 'received', undefined, {
+        runId: run_id,
+        attempt,
+        userAgent: headers['user-agent'],
+        contentType: headers['content-type'],
+      });
 
       // Verify webhook signature using dedicated service
       await this.signatureVerification.verifyWebhookSignature(req, {
@@ -92,8 +107,24 @@ export class InngestController {
         toleranceSeconds: 300, // 5 minutes
       });
 
+      functionLogger.logFunctionStart(function_id, run_id, attempt, {
+        eventName: body.event?.name,
+        eventId: body.event?.id,
+      });
+
       // Execute the function
       const result = await this.executeFunction(body);
+      const duration = Date.now() - startTime;
+
+      functionLogger.logFunctionSuccess(function_id, run_id, attempt, duration, result);
+      
+      this.logger.logWebhook('POST', function_id, 'processed', HttpStatus.OK, {
+        runId: run_id,
+        attempt,
+        duration,
+      });
+
+      this.logger.logPerformance('function-execution', duration, function_id, run_id);
 
       // Send success response
       res.status(HttpStatus.OK).json({
@@ -101,7 +132,13 @@ export class InngestController {
         result,
       });
     } catch (error) {
-      this.handleWebhookError(error, res, body?.function_id);
+      const duration = Date.now() - startTime;
+      this.handleWebhookError(error, res, body?.function_id, {
+        runId: run_id,
+        attempt,
+        duration,
+        functionLogger,
+      });
     }
   }
 
@@ -167,9 +204,12 @@ export class InngestController {
           attempt
         );
 
-      // Execute the function
-      const result = await this.executionContext.executeFunction(
-        executionContext
+      // Execute the function with timeout and error handling
+      const result = await this.executeWithErrorHandling(
+        () => this.executionContext.executeFunction(executionContext),
+        function_id,
+        run_id,
+        attempt
       );
 
       this.logger.log(
@@ -178,20 +218,137 @@ export class InngestController {
 
       return result;
     } catch (error) {
-      this.logger.error(
-        `Function ${function_id} execution failed (run: ${run_id}, attempt: ${attempt}):`,
-        error
-      );
+      // Enhanced error handling with classification
+      await this.handleExecutionError(error as Error, function_id, run_id, attempt);
+      throw error; // Re-throw after handling
+    }
+  }
 
-      throw new InngestRuntimeError(
-        `Function execution failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        function_id,
-        run_id,
-        error as Error
+  /**
+   * Execute function with enhanced error handling
+   */
+  private async executeWithErrorHandling<T>(
+    operation: () => Promise<T>,
+    functionId: string,
+    runId: string,
+    attempt: number
+  ): Promise<T> {
+    const timeout = this.config.timeout || 30000; // Default 30 seconds
+
+    // Create a timeout promise
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new InngestTimeoutError(
+          `Function execution timed out after ${timeout}ms`,
+          functionId,
+          runId,
+          timeout
+        ));
+      }, timeout);
+    });
+
+    try {
+      // Race between function execution and timeout
+      const result = await Promise.race([operation(), timeoutPromise]);
+      return result;
+    } catch (error) {
+      // Classify and enhance error with context
+      const enhancedError = this.enhanceError(error as Error, functionId, runId, attempt);
+      throw enhancedError;
+    }
+  }
+
+  /**
+   * Handle execution errors with detailed logging and classification
+   */
+  private async handleExecutionError(
+    error: Error,
+    functionId: string,
+    runId: string,
+    attempt: number
+  ): Promise<void> {
+    // Classify the error
+    const classification = errorHandler.classifyError(error);
+    
+    // Determine if this is a retry scenario
+    const isRetryExhausted = attempt >= (this.config.retry?.maxAttempts || 3);
+    
+    // Create appropriate error context
+    const errorContext = {
+      functionId,
+      runId,
+      attempt,
+      severity: classification.severity,
+      category: classification.category,
+      retryable: classification.retryable,
+      isRetryExhausted,
+    };
+
+    // Handle based on error type and severity
+    if (classification.severity === ErrorSeverity.CRITICAL) {
+      this.logger.error(
+        `CRITICAL: Function ${functionId} execution failed critically (run: ${runId}, attempt: ${attempt})`,
+        {
+          error: error.message,
+          stack: error.stack,
+          ...errorContext,
+        }
+      );
+    } else if (classification.severity === ErrorSeverity.HIGH) {
+      this.logger.error(
+        `Function ${functionId} execution failed (run: ${runId}, attempt: ${attempt})`,
+        {
+          error: error.message,
+          ...errorContext,
+        }
+      );
+    } else {
+      this.logger.warn(
+        `Function ${functionId} execution failed (run: ${runId}, attempt: ${attempt})`,
+        {
+          error: error.message,
+          ...errorContext,
+        }
       );
     }
+
+    // Handle error using error handler
+    await errorHandler.handleError(error, {
+      context: errorContext,
+      rethrow: false, // We'll handle rethrowing manually
+    });
+  }
+
+  /**
+   * Enhance error with additional context
+   */
+  private enhanceError(
+    error: Error,
+    functionId: string,
+    runId: string,
+    attempt: number
+  ): Error {
+    // If it's already an Inngest error, return as-is
+    if (error.constructor.name.startsWith('Inngest')) {
+      return error;
+    }
+
+    // Check for specific error types and wrap appropriately
+    if (error.message.includes('timeout') || error.name.includes('TimeoutError')) {
+      return new InngestTimeoutError(
+        error.message,
+        functionId,
+        runId
+      );
+    }
+
+    // Default to runtime error
+    return new InngestRuntimeError(
+      `Function execution failed: ${error.message}`,
+      functionId,
+      runId,
+      error
+    );
   }
 
   /**
@@ -201,7 +358,7 @@ export class InngestController {
     try {
       return this.functionRegistry.createInngestFunctions();
     } catch (error) {
-      this.logger.error("Failed to create function definitions:", error);
+      this.logger.error("Failed to create function definitions:", { error });
       throw new InngestWebhookError(
         "Failed to retrieve function definitions",
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -216,10 +373,19 @@ export class InngestController {
   private handleWebhookError(
     error: any,
     res: Response,
-    functionId?: string
+    functionId?: string,
+    context?: {
+      runId?: string;
+      attempt?: number;
+      duration?: number;
+      functionLogger?: EnhancedLogger;
+    }
   ): void {
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = "Internal server error";
+
+    // Classify error for enhanced error handling
+    const classification = errorHandler.classifyError(error);
 
     if (error instanceof InngestWebhookError) {
       statusCode = error.statusCode || HttpStatus.BAD_REQUEST;
@@ -237,11 +403,43 @@ export class InngestController {
         code: error.code || "WEBHOOK_ERROR",
         function_id: functionId,
         timestamp: new Date().toISOString(),
+        severity: classification.severity,
+        category: classification.category,
+        ...(context?.runId && { run_id: context.runId }),
+        ...(context?.attempt && { attempt: context.attempt }),
       },
     };
 
-    this.logger.error(
-      `Webhook error${functionId ? ` for function ${functionId}` : ""}:`,
+    // Enhanced error logging using appropriate logger
+    const logContext = {
+      statusCode,
+      severity: classification.severity,
+      category: classification.category,
+      retryable: classification.retryable,
+      ...(context?.runId && { runId: context.runId }),
+      ...(context?.attempt && { attempt: context.attempt }),
+      ...(context?.duration && { duration: context.duration }),
+    };
+
+    if (context?.functionLogger && functionId && context.runId) {
+      // Use function-specific logger for function execution errors
+      context.functionLogger.logFunctionError(
+        functionId,
+        context.runId,
+        context.attempt || 1,
+        context.duration || 0,
+        error,
+        logContext
+      );
+    }
+
+    // Also use webhook-specific logging
+    this.logger.logWebhook(
+      'POST',
+      functionId || 'unknown',
+      'failed',
+      statusCode,
+      logContext,
       error
     );
 

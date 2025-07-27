@@ -338,19 +338,19 @@ describe("ExecutionContextService", () => {
     describe("step.sleep", () => {
       it("should handle numeric duration", async () => {
         const startTime = Date.now();
-        await executionContext.inngestContext.step.sleep(10);
+        await executionContext.inngestContext.step.sleep(50);
         const endTime = Date.now();
 
-        expect(endTime - startTime).toBeGreaterThanOrEqual(10);
+        expect(endTime - startTime).toBeGreaterThanOrEqual(50);
       });
 
       it("should parse string durations", async () => {
-        // Test with a very short duration to avoid long test times
+        // Test with a longer duration to avoid timing issues
         const startTime = Date.now();
-        await executionContext.inngestContext.step.sleep("10ms");
+        await executionContext.inngestContext.step.sleep("50ms");
         const endTime = Date.now();
 
-        expect(endTime - startTime).toBeGreaterThanOrEqual(10);
+        expect(endTime - startTime).toBeGreaterThanOrEqual(50);
       });
 
       it("should handle invalid duration format", async () => {

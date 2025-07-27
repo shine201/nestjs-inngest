@@ -271,6 +271,10 @@ export function mergeWithDefaults(
       maxDelay: config.retry?.maxDelay ?? 30000,
       backoffMultiplier: config.retry?.backoffMultiplier ?? 2,
     },
+    development: config.development || {
+      enabled: false,
+      disableSignatureVerification: false,
+    },
   };
 }
 

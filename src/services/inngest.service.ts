@@ -3,10 +3,19 @@ import { Inngest } from "inngest";
 import {
   InngestEvent,
   InngestEventBatch,
+  EventSchemaRegistry,
+  DefaultEventRegistry,
 } from "../interfaces/inngest-event.interface";
 import { MergedInngestConfig } from "../utils/config-validation";
 import { InngestEventError } from "../errors";
 import { INNGEST_CONFIG, ERROR_MESSAGES } from "../constants";
+import { TypedEventBuilder } from "../utils/event-types";
+import {
+  ValidationErrorReporter,
+  ValidationResult,
+  EventValidator,
+  TypeChecker,
+} from "../utils/validation-error-reporter";
 
 /**
  * Retry options for event sending
@@ -24,6 +33,8 @@ interface RetryOptions {
 export class InngestService {
   private readonly logger = new Logger(InngestService.name);
   private readonly inngestClient: Inngest;
+  private readonly eventBuilder: TypedEventBuilder<DefaultEventRegistry> =
+    new TypedEventBuilder();
 
   constructor(
     @Inject(INNGEST_CONFIG) private readonly config: MergedInngestConfig
@@ -128,91 +139,108 @@ export class InngestService {
   }
 
   /**
-   * Validates a single event
+   * Validates a single event with comprehensive error reporting
    */
   private validateSingleEvent(event: InngestEvent, index?: number): void {
     const eventContext = index !== undefined ? ` at index ${index}` : "";
+    const reporter = new ValidationErrorReporter();
 
-    if (!event) {
-      throw new InngestEventError(`Event${eventContext} is null or undefined`);
-    }
+    // Basic structure validation
+    EventValidator.validateEventStructure(event, reporter);
 
-    if (
-      !event.name ||
-      typeof event.name !== "string" ||
-      event.name.trim() === ""
-    ) {
-      throw new InngestEventError(
-        ERROR_MESSAGES.INVALID_EVENT_NAME + eventContext,
-        event.name
+    // Event name format validation
+    if (event?.name) {
+      EventValidator.validateEventNameFormat(
+        event.name,
+        reporter,
+        this.config.strict
       );
     }
 
-    if (event.data === undefined || event.data === null) {
-      throw new InngestEventError(
-        ERROR_MESSAGES.INVALID_EVENT_DATA + eventContext,
-        event.name
-      );
+    // Data serialization validation
+    if (event?.data !== undefined) {
+      EventValidator.validateEventDataSerialization(event.data, reporter);
     }
 
-    // Validate user object if present
-    if (event.user) {
-      if (!event.user.id || typeof event.user.id !== "string") {
-        throw new InngestEventError(
-          `Event${eventContext} user.id must be a non-empty string`,
-          event.name
+    // Schema-based validation if available
+    if (event?.name && event?.data !== undefined) {
+      this.validateEventWithSchema(event, reporter);
+    }
+
+    // Throw if any validation errors occurred
+    reporter.throwIfErrors(event?.name);
+
+    this.logger.debug(
+      `Event${eventContext} passed all validation checks: ${event?.name}`
+    );
+  }
+
+  /**
+   * Validates event against registered schema using error reporter
+   */
+  private validateEventWithSchema(
+    event: InngestEvent,
+    reporter: ValidationErrorReporter
+  ): void {
+    const schema = this.eventBuilder.getSchema(
+      event.name as string & keyof DefaultEventRegistry
+    );
+    if (schema) {
+      try {
+        if (!this.eventBuilder.validateEvent(event as any)) {
+          reporter.addCustomError(
+            "event.data",
+            `Schema validation failed for event type: ${event.name}`,
+            "SCHEMA_VALIDATION_FAILED",
+            "valid data according to schema",
+            event.data
+          );
+        } else {
+          this.logger.debug(`Event passed schema validation: ${event.name}`);
+        }
+      } catch (error) {
+        reporter.addCustomError(
+          "event.data",
+          `Schema validation error: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          "SCHEMA_VALIDATION_ERROR",
+          "valid data according to schema",
+          event.data
         );
       }
-    }
-
-    // Validate timestamp if present
-    if (event.ts !== undefined) {
-      if (typeof event.ts !== "number" || event.ts < 0) {
-        throw new InngestEventError(
-          `Event${eventContext} timestamp must be a positive number`,
-          event.name
-        );
-      }
-    }
-
-    // Additional strict mode validations
-    if (this.config.strict) {
-      this.validateEventStrict(event, eventContext);
     }
   }
 
   /**
-   * Additional strict validations for events
+   * Validate an event and return detailed validation result
    */
-  private validateEventStrict(event: InngestEvent, context: string): void {
-    // Validate event name format (kebab-case with dots)
-    const eventNamePattern = /^[a-z0-9]+(\.[a-z0-9]+)*$/;
-    if (!eventNamePattern.test(event.name)) {
-      throw new InngestEventError(
-        `Event${context} name must be in kebab-case format (e.g., 'user.created', 'order.completed')`,
-        event.name
-      );
-    }
+  validateEventWithDetails(event: InngestEvent): ValidationResult {
+    const reporter = new ValidationErrorReporter();
 
-    // Validate data is serializable
-    try {
-      JSON.stringify(event.data);
-    } catch (error) {
-      throw new InngestEventError(
-        `Event${context} data must be JSON serializable`,
+    // Basic structure validation
+    EventValidator.validateEventStructure(event, reporter);
+
+    // Event name format validation
+    if (event?.name) {
+      EventValidator.validateEventNameFormat(
         event.name,
-        error as Error
+        reporter,
+        this.config.strict
       );
     }
 
-    // Check for reasonable data size (1MB limit)
-    const dataSize = JSON.stringify(event.data).length;
-    if (dataSize > 1024 * 1024) {
-      throw new InngestEventError(
-        `Event${context} data size exceeds 1MB limit (${dataSize} bytes)`,
-        event.name
-      );
+    // Data serialization validation
+    if (event?.data !== undefined) {
+      EventValidator.validateEventDataSerialization(event.data, reporter);
     }
+
+    // Schema-based validation if available
+    if (event?.name && event?.data !== undefined) {
+      this.validateEventWithSchema(event, reporter);
+    }
+
+    return reporter.getResult();
   }
 
   /**
@@ -426,5 +454,50 @@ export class InngestService {
     }
 
     return batches;
+  }
+
+  /**
+   * Register an event schema for validation
+   */
+  registerEventSchema<T extends string & keyof DefaultEventRegistry>(
+    eventName: T,
+    schema: EventSchemaRegistry<DefaultEventRegistry>[T]
+  ): void {
+    if (schema) {
+      this.eventBuilder.registerSchema(eventName, schema);
+      this.logger.debug(`Registered schema for event: ${eventName}`);
+    }
+  }
+
+  /**
+   * Register multiple event schemas
+   */
+  registerEventSchemas(
+    schemas: EventSchemaRegistry<DefaultEventRegistry>
+  ): void {
+    Object.entries(schemas).forEach(([eventName, schema]) => {
+      if (schema) {
+        this.registerEventSchema(
+          eventName as string & keyof DefaultEventRegistry,
+          schema
+        );
+      }
+    });
+  }
+
+  /**
+   * Get registered schemas
+   */
+  getEventSchemas(): EventSchemaRegistry<DefaultEventRegistry> {
+    return this.eventBuilder.getSchemas();
+  }
+
+  /**
+   * Check if schema is registered for an event
+   */
+  hasEventSchema(eventName: string): boolean {
+    return !!this.eventBuilder.getSchema(
+      eventName as string & keyof DefaultEventRegistry
+    );
   }
 }

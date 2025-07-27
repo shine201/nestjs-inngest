@@ -53,9 +53,14 @@ export class InngestEventError extends InngestError {
   constructor(
     message: string,
     public readonly eventName?: string,
-    public readonly originalError?: Error
+    public readonly originalError?: Error,
+    additionalContext?: Record<string, any>
   ) {
-    super(message, { eventName, originalError });
+    super(message, { 
+      eventName, 
+      originalError, 
+      ...additionalContext 
+    });
   }
 }
 
@@ -87,5 +92,107 @@ export class InngestRuntimeError extends InngestError {
     public readonly originalError?: Error
   ) {
     super(message, { functionId, runId, originalError });
+  }
+}
+
+/**
+ * Function timeout error
+ */
+export class InngestTimeoutError extends InngestError {
+  readonly code = "INNGEST_TIMEOUT_ERROR";
+
+  constructor(
+    message: string,
+    public readonly functionId?: string,
+    public readonly runId?: string,
+    public readonly timeout?: number
+  ) {
+    super(message, { functionId, runId, timeout });
+  }
+}
+
+/**
+ * Function retry exhausted error
+ */
+export class InngestRetryError extends InngestError {
+  readonly code = "INNGEST_RETRY_ERROR";
+
+  constructor(
+    message: string,
+    public readonly functionId?: string,
+    public readonly runId?: string,
+    public readonly attempts?: number,
+    public readonly lastError?: Error
+  ) {
+    super(message, { functionId, runId, attempts, lastError });
+  }
+}
+
+/**
+ * Dependency injection/scope error
+ */
+export class InngestScopeError extends InngestError {
+  readonly code = "INNGEST_SCOPE_ERROR";
+
+  constructor(
+    message: string,
+    public readonly providerId?: string,
+    public readonly scope?: string,
+    public readonly originalError?: Error
+  ) {
+    super(message, { providerId, scope, originalError });
+  }
+}
+
+/**
+ * Step execution error
+ */
+export class InngestStepError extends InngestError {
+  readonly code = "INNGEST_STEP_ERROR";
+
+  constructor(
+    message: string,
+    public readonly stepId?: string,
+    public readonly stepType?: string,
+    public readonly functionId?: string,
+    public readonly runId?: string,
+    public readonly originalError?: Error
+  ) {
+    super(message, { stepId, stepType, functionId, runId, originalError });
+  }
+}
+
+/**
+ * Validation error specifically for function arguments/context
+ */
+export class InngestValidationError extends InngestError {
+  readonly code = "INNGEST_VALIDATION_ERROR";
+
+  constructor(
+    message: string,
+    public readonly validationErrors?: Array<{
+      path: string;
+      message: string;
+      code: string;
+    }>,
+    public readonly functionId?: string
+  ) {
+    super(message, { validationErrors, functionId });
+  }
+}
+
+/**
+ * Service unavailable error
+ */
+export class InngestServiceError extends InngestError {
+  readonly code = "INNGEST_SERVICE_ERROR";
+
+  constructor(
+    message: string,
+    public readonly service?: string,
+    public readonly statusCode?: number,
+    public readonly originalError?: Error
+  ) {
+    super(message, { service, statusCode, originalError });
   }
 }

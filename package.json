@@ -1,25 +1,40 @@
 {
   "name": "nestjs-inngest",
-  "version": "0.0.1",
-  "description": "NestJS integration for Inngest event-driven functions",
+  "version": "1.1.0",
+  "description": "Advanced NestJS integration for Inngest with performance optimizations, type safety, and enterprise features",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "build:watch": "tsc --watch",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:e2e": "jest --config ./test/jest-e2e.json",
     "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix"
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm run test && npm run lint"
   },
   "keywords": [
     "nestjs",
     "inngest",
     "events",
     "background-jobs",
-    "typescript"
+    "typescript",
+    "microservices",
+    "event-driven",
+    "serverless",
+    "performance",
+    "enterprise",
+    "queue",
+    "workflow",
+    "saga",
+    "circuit-breaker",
+    "distributed-systems"
   ],
-  "author": "",
+  "author": "NestJS Inngest Contributors",
   "license": "MIT",
   "peerDependencies": {
     "@nestjs/common": "^11.0.0",
@@ -29,14 +44,17 @@
     "rxjs": "^7.5.0"
   },
   "devDependencies": {
+    "@nestjs/platform-express": "^11.1.5",
     "@nestjs/testing": "^11.0.0",
     "@types/express": "^5.0.3",
     "@types/jest": "^29.0.0",
     "@types/node": "^20.0.0",
+    "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.0.0",
     "jest": "^29.0.0",
+    "supertest": "^7.1.4",
     "ts-jest": "^29.0.0",
     "typescript": "^5.0.0"
   },

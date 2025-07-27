@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Request } from "express";
 import { InngestWebhookError } from "../errors";
 import { ERROR_MESSAGES } from "../constants";
+import { DevelopmentMode } from "../utils/development-mode";
 
 /**
  * Parsed signature components from Inngest webhook header
@@ -36,6 +37,12 @@ export class SignatureVerificationService {
     request: Request,
     config: SignatureVerificationConfig
   ): Promise<void> {
+    // Skip verification in development mode if configured to do so
+    if (DevelopmentMode.shouldDisableSignatureVerification()) {
+      DevelopmentMode.log('Signature verification disabled in development mode');
+      return;
+    }
+
     if (!config.signingKey) {
       this.logger.warn(
         "No signing key provided - skipping signature verification"

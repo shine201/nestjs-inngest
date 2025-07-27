@@ -38,6 +38,10 @@ describe("InngestService", () => {
         maxDelay: 30000,
         backoffMultiplier: 2,
       },
+      development: {
+        enabled: false,
+        disableSignatureVerification: false,
+      },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -142,7 +146,7 @@ describe("InngestService", () => {
         InngestEventError
       );
       await expect(service.send(invalidEvent)).rejects.toThrow(
-        ERROR_MESSAGES.INVALID_EVENT_NAME
+        /event\.name.*non-empty string/
       );
     });
 
@@ -153,7 +157,7 @@ describe("InngestService", () => {
         InngestEventError
       );
       await expect(service.send(invalidEvent)).rejects.toThrow(
-        ERROR_MESSAGES.INVALID_EVENT_DATA
+        /event\.data.*required/i
       );
     });
 
@@ -164,7 +168,7 @@ describe("InngestService", () => {
         InngestEventError
       );
       await expect(service.send(invalidEvent)).rejects.toThrow(
-        "user.id must be a non-empty string"
+        /user\.id.*non-empty string/
       );
     });
 
@@ -175,7 +179,7 @@ describe("InngestService", () => {
         InngestEventError
       );
       await expect(service.send(invalidEvent)).rejects.toThrow(
-        "timestamp must be a positive number"
+        /event\.ts.*range/
       );
     });
 
@@ -231,7 +235,7 @@ describe("InngestService", () => {
       await expect(service.send(invalidBatch)).rejects.toThrow(
         InngestEventError
       );
-      await expect(service.send(invalidBatch)).rejects.toThrow("at index 1");
+      await expect(service.send(invalidBatch)).rejects.toThrow(/validation error/);
     });
   });
 
@@ -290,7 +294,7 @@ describe("InngestService", () => {
         InngestEventError
       );
       await expect(service.send(invalidEvent)).rejects.toThrow(
-        "must be JSON serializable"
+        /serializable/
       );
     });
   });

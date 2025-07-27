@@ -1,4 +1,5 @@
 import { ModuleMetadata, Type } from "@nestjs/common";
+import { DevelopmentModeConfig } from "../utils/development-mode";
 
 /**
  * Environment configuration for Inngest
@@ -22,12 +23,52 @@ export interface RetryConfig {
   /**
    * Maximum delay between retries in milliseconds
    */
-  maxDelay: number;
+  maxDelay?: number;
+
+  /**
+   * Backoff strategy
+   */
+  backoff?: 'exponential' | 'linear' | 'fixed';
 
   /**
    * Backoff multiplier for exponential backoff
    */
-  backoffMultiplier: number;
+  backoffMultiplier?: number;
+}
+
+/**
+ * Factory function for creating Inngest configuration
+ */
+export interface InngestConfigFactory {
+  createInngestConfig(): Promise<InngestModuleConfig> | InngestModuleConfig;
+}
+
+/**
+ * Options for asynchronous configuration
+ */
+export interface InngestModuleAsyncOptions
+  extends Pick<ModuleMetadata, "imports"> {
+  /**
+   * Injection token for the configuration
+   */
+  inject?: any[];
+
+  /**
+   * Factory function to create the configuration
+   */
+  useFactory?: (
+    ...args: any[]
+  ) => Promise<InngestModuleConfig> | InngestModuleConfig;
+
+  /**
+   * Class to use for configuration
+   */
+  useClass?: Type<InngestConfigFactory>;
+
+  /**
+   * Existing provider to use for configuration
+   */
+  useExisting?: Type<InngestConfigFactory>;
 }
 
 /**
@@ -93,6 +134,11 @@ export interface InngestModuleConfig {
    * Enable strict mode for enhanced validation (defaults to false)
    */
   strict?: boolean;
+
+  /**
+   * Development mode configuration
+   */
+  development?: DevelopmentModeConfig;
 }
 
 /**

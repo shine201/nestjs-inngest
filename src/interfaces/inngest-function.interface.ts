@@ -1,4 +1,4 @@
-import { InngestEvent } from "./inngest-event.interface";
+import { InngestEvent, CronTrigger } from "./inngest-event.interface";
 
 /**
  * Rate limiting configuration
@@ -50,15 +50,7 @@ export interface EventTrigger {
   if?: string;
 }
 
-/**
- * Cron trigger configuration
- */
-export interface CronTrigger {
-  /**
-   * Cron expression
-   */
-  cron: string;
-}
+// CronTrigger is imported from inngest-event.interface.ts
 
 /**
  * Union type for all trigger types

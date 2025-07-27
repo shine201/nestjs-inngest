@@ -7,6 +7,7 @@ import {
 } from "../interfaces/inngest-function.interface";
 import { InngestEvent } from "../interfaces/inngest-event.interface";
 import { InngestRuntimeError } from "../errors";
+import { DevelopmentMode } from "../utils/development-mode";
 
 /**
  * Context for function execution
@@ -111,6 +112,14 @@ export class ExecutionContextService {
       // Store active execution
       this.activeExecutions.set(executionId, executionContext);
 
+      // Log function execution start in development mode
+      DevelopmentMode.logFunctionExecution(
+        functionMetadata.config.id,
+        runId,
+        event,
+        'start'
+      );
+
       this.logger.debug(
         `Created execution context for function ${functionMetadata.config.id} (${executionId})`
       );
@@ -157,23 +166,47 @@ export class ExecutionContextService {
       const result = await boundMethod(inngestContext);
       const duration = Date.now() - startTime;
 
+      // Log function execution completion in development mode
+      DevelopmentMode.logFunctionExecution(
+        functionMetadata.config.id,
+        inngestContext.runId,
+        inngestContext.event,
+        'complete',
+        { result, duration }
+      );
+
       this.logger.debug(
         `Function ${functionMetadata.config.id} completed in ${duration}ms (${executionId})`
       );
 
       return result;
     } catch (error) {
+      // Log function execution error in development mode
+      DevelopmentMode.logFunctionExecution(
+        functionMetadata.config.id,
+        inngestContext.runId,
+        inngestContext.event,
+        'error',
+        { error }
+      );
+
       this.logger.error(
         `Function ${functionMetadata.config.id} failed (${executionId}):`,
         error
       );
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      
+      // Enhance error with development context
+      const enhancedError = DevelopmentMode.enhanceErrorForDevelopment(error as Error, {
+        functionId: functionMetadata.config.id,
+        runId: inngestContext.runId,
+      });
+      
+      const errorMessage = enhancedError.message;
       throw new InngestRuntimeError(
         `Function execution failed: ${errorMessage}`,
         functionMetadata.config.id,
         inngestContext.runId,
-        error as Error
+        enhancedError
       );
     } finally {
       // Clean up execution context

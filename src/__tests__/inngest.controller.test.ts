@@ -38,6 +38,10 @@ describe("InngestController", () => {
         maxDelay: 30000,
         backoffMultiplier: 2,
       },
+      development: {
+        enabled: false,
+        disableSignatureVerification: false,
+      },
     };
 
     const mockFunctionRegistry = {
@@ -273,7 +277,7 @@ describe("InngestController", () => {
       );
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: expect.objectContaining({
-          message: expect.stringContaining("Function execution failed"),
+          message: "Execution failed",
           function_id: "test-function",
         }),
       });
@@ -557,7 +561,7 @@ describe("InngestController", () => {
       );
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: expect.objectContaining({
-          message: "Function execution failed: Test runtime error",
+          message: "Test runtime error",
           code: "INNGEST_RUNTIME_ERROR",
           function_id: "test-function",
         }),
