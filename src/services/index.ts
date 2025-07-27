@@ -3,3 +3,4 @@ export * from "./inngest.service";
 export * from "./function-registry.service";
 export * from "./execution-context.service";
 export * from "./scope-manager.service";
+export * from "./signature-verification.service";
