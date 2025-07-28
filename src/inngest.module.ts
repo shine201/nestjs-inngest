@@ -17,6 +17,11 @@ import { ScopeManagerService } from "./services/scope-manager.service";
 import { SignatureVerificationService } from "./services/signature-verification.service";
 import { InngestController } from "./controllers/inngest.controller";
 import { INNGEST_CONFIG } from "./constants";
+import { PlatformDetector } from "./adapters/platform-detector";
+import {
+  HttpPlatformAdapter,
+  HttpPlatformType,
+} from "./adapters/http-platform.interface";
 
 /**
  * Main module for Inngest integration with NestJS
@@ -69,6 +74,11 @@ export class InngestModule {
       useValue: finalConfig,
     };
 
+    // Create HTTP platform adapter provider
+    const httpAdapterProvider: Provider = this.createHttpAdapterProvider(
+      config.httpPlatform,
+    );
+
     // Set the controller path dynamically using metadata
     Reflect.defineMetadata("path", finalConfig.endpoint, InngestController);
 
@@ -78,6 +88,7 @@ export class InngestModule {
       controllers: [InngestController],
       providers: [
         configProvider,
+        httpAdapterProvider,
         InngestService,
         FunctionRegistry,
         ExecutionContextService,
@@ -129,6 +140,33 @@ export class InngestModule {
         {
           provide: InngestController,
           useClass: DynamicInngestController,
+        },
+        {
+          provide: "HTTP_PLATFORM_ADAPTER",
+          useValue: {
+            // Runtime adapter that detects platform per request
+            extractRequest: (req: any) => {
+              const adapter = PlatformDetector.createAdapterFromRequest(req);
+              return adapter.extractRequest(req);
+            },
+            wrapResponse: (res: any) => {
+              // Use Express as default for response wrapping when no request context
+              const adapter = PlatformDetector.getPlatformAdapter("express");
+              return adapter.wrapResponse(res);
+            },
+            getRawBody: (req: any) => {
+              const adapter = PlatformDetector.createAdapterFromRequest(req);
+              return adapter.getRawBody(req);
+            },
+            getPlatformName: () => {
+              // Return the cached platform name or 'auto' if not detected yet
+              return PlatformDetector.getCachedPlatform() || "auto";
+            },
+            isCompatible: (req: any) => {
+              const adapter = PlatformDetector.createAdapterFromRequest(req);
+              return adapter.isCompatible(req);
+            },
+          },
         },
         InngestService,
         FunctionRegistry,
@@ -238,6 +276,26 @@ export class InngestModule {
         return finalConfig;
       },
       inject: [options.useClass || options.useExisting!],
+    };
+  }
+
+  /**
+   * Creates HTTP platform adapter provider
+   */
+  private static createHttpAdapterProvider(
+    platformType?: HttpPlatformType,
+  ): Provider {
+    return {
+      provide: "HTTP_PLATFORM_ADAPTER",
+      useFactory: (): HttpPlatformAdapter => {
+        if (platformType && platformType !== "auto") {
+          return PlatformDetector.getPlatformAdapter(platformType);
+        }
+
+        // Auto-detect platform
+        const detection = PlatformDetector.detectPlatform();
+        return new detection.adapter();
+      },
     };
   }
 }

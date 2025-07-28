@@ -28,6 +28,8 @@ import {
   validateRealAPIConfig,
   getTestModeStatus,
 } from "./test-config";
+import { PlatformDetector } from "../adapters/platform-detector";
+import { HttpPlatformType } from "../adapters/http-platform.interface";
 
 /**
  * Configuration for InngestTestingModule
@@ -62,6 +64,11 @@ export interface InngestTestingConfig {
    * Additional providers to include in the module
    */
   additionalProviders?: Provider[];
+
+  /**
+   * HTTP platform to use for testing (express, fastify, or auto-detect)
+   */
+  httpPlatform?: HttpPlatformType;
 }
 
 /**
@@ -80,6 +87,7 @@ export class InngestTestingModule {
       includeController = true,
       eventRegistry = {},
       additionalProviders = [],
+      httpPlatform = "express", // Default to Express for tests
     } = config;
 
     // Default test configuration
@@ -103,6 +111,7 @@ export class InngestTestingModule {
         disableSignatureVerification: true,
       },
       ...mockConfig,
+      httpPlatform: httpPlatform,
     };
 
     // Initialize development mode if configuration is provided
@@ -114,12 +123,38 @@ export class InngestTestingModule {
       DevelopmentMode.initialize(devConfig);
     }
 
+    // HTTP Platform Adapter provider for testing
+    const httpAdapterProvider: Provider = {
+      provide: "HTTP_PLATFORM_ADAPTER",
+      useValue: {
+        // Test-friendly adapter that works with mock requests
+        extractRequest: (req: any) => {
+          const adapter = PlatformDetector.getPlatformAdapter(httpPlatform);
+          return adapter.extractRequest(req);
+        },
+        wrapResponse: (res: any) => {
+          const adapter = PlatformDetector.getPlatformAdapter(httpPlatform);
+          return adapter.wrapResponse(res);
+        },
+        getRawBody: (req: any) => {
+          const adapter = PlatformDetector.getPlatformAdapter(httpPlatform);
+          return adapter.getRawBody(req);
+        },
+        getPlatformName: () => httpPlatform,
+        isCompatible: (req: any) => {
+          const adapter = PlatformDetector.getPlatformAdapter(httpPlatform);
+          return adapter.isCompatible(req);
+        },
+      },
+    };
+
     // Core providers that are always included
     const coreProviders: Provider[] = [
       {
         provide: INNGEST_CONFIG,
         useValue: defaultConfig,
       },
+      httpAdapterProvider,
       FunctionRegistry,
       ScopeManagerService,
       DiscoveryService,
@@ -267,6 +302,7 @@ export class InngestTestingModule {
         disableSignatureVerification: testConfig.isDev,
       },
       baseUrl: testConfig.baseUrl,
+      httpPlatform: config.httpPlatform || "express",
       ...config.mockConfig,
     };
 

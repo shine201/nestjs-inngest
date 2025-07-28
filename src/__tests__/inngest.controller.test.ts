@@ -9,6 +9,7 @@ import { MergedInngestConfig } from "../utils/config-validation";
 import { InngestWebhookError, InngestRuntimeError } from "../errors";
 import { INNGEST_CONFIG, ERROR_MESSAGES } from "../constants";
 import { InngestEvent } from "../interfaces/inngest-event.interface";
+import { createSimpleMockHttpAdapter } from "../testing/http-adapter-test-helper";
 
 describe("InngestController", () => {
   let controller: InngestController;
@@ -42,6 +43,7 @@ describe("InngestController", () => {
         enabled: false,
         disableSignatureVerification: false,
       },
+      httpPlatform: "express",
     };
 
     const mockFunctionRegistry = {
@@ -85,6 +87,7 @@ describe("InngestController", () => {
           provide: SignatureVerificationService,
           useValue: mockSignatureVerification,
         },
+        createSimpleMockHttpAdapter(),
       ],
     }).compile();
 
@@ -324,6 +327,7 @@ describe("InngestController", () => {
           version: "1.0.0",
           language: "typescript",
           framework: "nestjs",
+          platform: "express",
         },
       });
     });
@@ -411,6 +415,7 @@ describe("InngestController", () => {
             provide: SignatureVerificationService,
             useValue: signatureVerification,
           },
+          createSimpleMockHttpAdapter(),
         ],
       }).compile();
 
@@ -462,6 +467,7 @@ describe("InngestController", () => {
             provide: SignatureVerificationService,
             useValue: signatureVerification,
           },
+          createSimpleMockHttpAdapter(),
         ],
       }).compile();
 

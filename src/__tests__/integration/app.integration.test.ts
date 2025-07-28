@@ -7,6 +7,7 @@ import { FunctionRegistry } from "../../services/function-registry.service";
 import { ExecutionContextService } from "../../services/execution-context.service";
 import { SignatureVerificationService } from "../../services/signature-verification.service";
 import { InngestController } from "../../controllers/inngest.controller";
+import { createSimpleMockHttpAdapter } from "../../testing/http-adapter-test-helper";
 import {
   InngestTestingModule,
   InngestTestUtils,

@@ -8,6 +8,7 @@ import { SignatureVerificationService } from "../../services/signature-verificat
 import { ScopeManagerService } from "../../services/scope-manager.service";
 import { EnhancedLogger } from "../../services/enhanced-logger.service";
 import { InngestController } from "../../controllers/inngest.controller";
+import { createSimpleMockHttpAdapter } from "../../testing/http-adapter-test-helper";
 import {
   InngestModuleConfig,
   InngestModuleAsyncOptions,

@@ -10,7 +10,7 @@ import {
   Inject,
   HttpStatus,
 } from "@nestjs/common";
-import { Request, Response } from "express";
+import { HttpPlatformAdapter } from "../adapters/http-platform.interface";
 import { FunctionRegistry } from "../services/function-registry.service";
 import { ExecutionContextService } from "../services/execution-context.service";
 import { SignatureVerificationService } from "../services/signature-verification.service";
@@ -77,6 +77,8 @@ export class InngestController {
 
   constructor(
     @Inject(INNGEST_CONFIG) private readonly config: MergedInngestConfig,
+    @Inject("HTTP_PLATFORM_ADAPTER")
+    private readonly httpAdapter: HttpPlatformAdapter,
     private readonly functionRegistry: FunctionRegistry,
     private readonly executionContext: ExecutionContextService,
     private readonly signatureVerification: SignatureVerificationService,
@@ -89,8 +91,8 @@ export class InngestController {
    */
   @Post()
   async handlePost(
-    @Req() req: Request,
-    @Res() res: Response,
+    @Req() req: any,
+    @Res() res: any,
     @Headers() headers: Record<string, string>,
     @Body() body: InngestWebhookRequest,
   ): Promise<void> {
@@ -148,8 +150,9 @@ export class InngestController {
         run_id,
       );
 
-      // Send success response
-      res.status(HttpStatus.OK).json({
+      // Send success response using platform adapter
+      const responseAdapter = this.httpAdapter.wrapResponse(res);
+      responseAdapter.status(HttpStatus.OK).json({
         status: "ok",
         result,
       });
@@ -169,8 +172,8 @@ export class InngestController {
    */
   @Put()
   async handlePut(
-    @Req() req: Request,
-    @Res() res: Response,
+    @Req() req: any,
+    @Res() res: any,
     @Headers() headers: Record<string, string>,
   ): Promise<void> {
     try {
@@ -185,13 +188,16 @@ export class InngestController {
       // Return function definitions
       const functions = this.getFunctionDefinitions();
 
-      res.status(HttpStatus.OK).json({
+      // Send response using platform adapter
+      const responseAdapter = this.httpAdapter.wrapResponse(res);
+      responseAdapter.status(HttpStatus.OK).json({
         functions,
         sdk: {
           name: "nest-inngest",
           version: "1.0.0",
           language: "typescript",
           framework: "nestjs",
+          platform: this.httpAdapter.getPlatformName(),
         },
       });
     } catch (error) {
@@ -405,7 +411,7 @@ export class InngestController {
    */
   private handleWebhookError(
     error: any,
-    res: Response,
+    res: any,
     functionId?: string,
     context?: {
       runId?: string;
@@ -476,7 +482,9 @@ export class InngestController {
       error,
     );
 
-    res.status(statusCode).json(errorResponse);
+    // Send error response using platform adapter
+    const responseAdapter = this.httpAdapter.wrapResponse(res);
+    responseAdapter.status(statusCode).json(errorResponse);
   }
 
   /**

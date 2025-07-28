@@ -1,8 +1,11 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { Request } from "express";
+import { Injectable, Logger, Inject } from "@nestjs/common";
 import { InngestWebhookError } from "../errors";
 import { ERROR_MESSAGES } from "../constants";
 import { DevelopmentMode } from "../utils/development-mode";
+import {
+  HttpPlatformAdapter,
+  HttpRequestAdapter,
+} from "../adapters/http-platform.interface";
 
 /**
  * Parsed signature components from Inngest webhook header
@@ -30,11 +33,16 @@ export class SignatureVerificationService {
   private readonly logger = new Logger(SignatureVerificationService.name);
   private readonly DEFAULT_TOLERANCE_SECONDS = 300; // 5 minutes
 
+  constructor(
+    @Inject("HTTP_PLATFORM_ADAPTER")
+    private readonly httpAdapter: HttpPlatformAdapter,
+  ) {}
+
   /**
    * Verifies the signature of an incoming webhook request
    */
   async verifyWebhookSignature(
-    request: Request,
+    request: any,
     config: SignatureVerificationConfig,
   ): Promise<void> {
     // Skip verification in development mode if configured to do so
@@ -52,8 +60,13 @@ export class SignatureVerificationService {
       return;
     }
 
+    // Extract request using platform adapter
+    const adaptedRequest = this.httpAdapter.extractRequest(request);
+
     // Check if signature header exists before proceeding
-    const signatureHeader = request.headers["x-inngest-signature"] as string;
+    const signatureHeader = adaptedRequest.headers[
+      "x-inngest-signature"
+    ] as string;
     if (!signatureHeader) {
       throw new InngestWebhookError(
         "Missing signature header (x-inngest-signature)",
@@ -69,7 +82,7 @@ export class SignatureVerificationService {
       this.verifyTimestamp(parsedSignature.timestamp, config.toleranceSeconds);
 
       // Get request body for verification
-      const rawBody = this.extractRawBody(request);
+      const rawBody = this.extractRawBody(request, adaptedRequest);
 
       // Verify the signature
       await this.verifySignature(rawBody, parsedSignature, config.signingKey);
@@ -94,8 +107,10 @@ export class SignatureVerificationService {
   /**
    * Extracts the signature header from the request
    */
-  private extractSignatureHeader(request: Request): string {
-    const signatureHeader = request.headers["x-inngest-signature"] as string;
+  private extractSignatureHeader(adaptedRequest: HttpRequestAdapter): string {
+    const signatureHeader = adaptedRequest.headers[
+      "x-inngest-signature"
+    ] as string;
 
     if (!signatureHeader) {
       throw new InngestWebhookError(
@@ -176,24 +191,35 @@ export class SignatureVerificationService {
   /**
    * Extracts the raw body from the request for signature verification
    */
-  private extractRawBody(request: Request): string {
-    // Check if raw body was captured by middleware
-    if ((request as any).rawBody) {
-      return (request as any).rawBody;
+  private extractRawBody(
+    originalRequest: any,
+    adaptedRequest: HttpRequestAdapter,
+  ): string {
+    // Try to get raw body using platform adapter
+    const rawBody = this.httpAdapter.getRawBody(originalRequest);
+
+    if (rawBody) {
+      return typeof rawBody === "string" ? rawBody : rawBody.toString("utf8");
+    }
+
+    // Check if body is available in adapted request
+    if (adaptedRequest.rawBody) {
+      const body = adaptedRequest.rawBody;
+      return typeof body === "string" ? body : body.toString("utf8");
     }
 
     // Check if body is a Buffer
-    if (Buffer.isBuffer((request as any).body)) {
-      return (request as any).body.toString("utf8");
+    if (Buffer.isBuffer(adaptedRequest.body)) {
+      return adaptedRequest.body.toString("utf8");
     }
 
     // Fallback to JSON stringification (not ideal for signature verification)
     this.logger.warn(
-      "Raw body not available, using JSON.stringify as fallback. " +
-        "Consider using raw body middleware for better security.",
+      `Raw body not available for ${this.httpAdapter.getPlatformName()}, using JSON.stringify as fallback. ` +
+        "Consider configuring raw body middleware for better security.",
     );
 
-    return JSON.stringify(request.body);
+    return JSON.stringify(adaptedRequest.body);
   }
 
   /**

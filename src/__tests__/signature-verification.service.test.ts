@@ -3,6 +3,7 @@ import { Request } from "express";
 import { SignatureVerificationService } from "../services/signature-verification.service";
 import { InngestWebhookError } from "../errors";
 import { ERROR_MESSAGES } from "../constants";
+import { createSimpleMockHttpAdapter } from "../testing/http-adapter-test-helper";
 
 // Mock crypto module
 jest.mock("crypto", () => ({
@@ -19,7 +20,7 @@ describe("SignatureVerificationService", () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [SignatureVerificationService],
+      providers: [SignatureVerificationService, createSimpleMockHttpAdapter()],
     }).compile();
 
     service = module.get<SignatureVerificationService>(

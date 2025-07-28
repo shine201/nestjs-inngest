@@ -12,11 +12,13 @@
 ### Core Features
 
 - 🚀 **Seamless NestJS Integration** - Native dependency injection and NestJS patterns
+- ⚡ **Multi-Platform Support** - Works with both Express and Fastify HTTP platforms
 - 🔒 **Type Safety** - Full TypeScript support with typed event definitions and handlers
 - 🎯 **Decorator-Based** - Simple `@InngestFunction` and `@TypedInngestFunction` decorators
 - 🔄 **Automatic Discovery** - Zero-config function registration and discovery
 - 🌐 **Webhook Support** - Built-in webhook handling with signature verification
 - 🧪 **Comprehensive Testing** - Advanced testing utilities and mock services
+- 🔍 **Auto Platform Detection** - Automatically detects Express vs Fastify at runtime
 
 ### Performance & Enterprise Features ⚡
 
@@ -66,7 +68,51 @@ import { InngestModule } from "nestjs-inngest";
 export class AppModule {}
 ```
 
-### 2. Define Event Types (Optional but Recommended)
+### 2. HTTP Platform Support
+
+This module supports both **Express** (default) and **Fastify** HTTP platforms with automatic detection:
+
+#### Express (Default)
+```typescript
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  await app.listen(3000);
+}
+bootstrap();
+```
+
+#### Fastify
+```typescript
+import { NestFactory } from '@nestjs/core';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter()
+  );
+  
+  // Optional: Configure raw body parsing for webhook signature verification
+  await app.register(require('fastify-raw-body'), {
+    field: 'rawBody',
+    global: false,
+    encoding: 'utf8',
+    runFirst: true,
+    routes: ['/api/inngest'], // Your Inngest endpoint
+  });
+  
+  await app.listen(3000, '0.0.0.0');
+}
+bootstrap();
+```
+
+> **Note:** The platform is automatically detected at runtime. No configuration changes needed in your Inngest module setup!
+
+### 3. Define Event Types (Optional but Recommended)
 
 Create type-safe event definitions:
 

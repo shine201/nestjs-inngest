@@ -240,11 +240,15 @@ export function validateConfig(config: InngestModuleConfig): ValidationResult {
  * Merged configuration type with required fields
  */
 export type MergedInngestConfig = Required<
-  Omit<InngestModuleConfig, "eventKey" | "signingKey" | "baseUrl">
+  Omit<
+    InngestModuleConfig,
+    "eventKey" | "signingKey" | "baseUrl" | "httpPlatform"
+  >
 > & {
   eventKey?: string;
   signingKey?: string;
   baseUrl?: string;
+  httpPlatform?: string;
 };
 
 /**
@@ -275,6 +279,7 @@ export function mergeWithDefaults(
       enabled: false,
       disableSignatureVerification: false,
     },
+    httpPlatform: config.httpPlatform,
   };
 }
 

@@ -24,3 +24,6 @@ export * from "./utils";
 
 // Testing
 export * from "./testing";
+
+// HTTP Platform Adapters
+export * from "./adapters";

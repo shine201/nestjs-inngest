@@ -6,6 +6,7 @@ import { ExecutionContextService } from "../../services/execution-context.servic
 import { SignatureVerificationService } from "../../services/signature-verification.service";
 import { ScopeManagerService } from "../../services/scope-manager.service";
 import { InngestController } from "../../controllers/inngest.controller";
+import { createSimpleMockHttpAdapter } from "../../testing/http-adapter-test-helper";
 import {
   EnhancedLogger,
   LoggerFactory,

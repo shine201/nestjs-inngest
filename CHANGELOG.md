@@ -5,6 +5,57 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-07-29
+
+### 🚀 Major Features
+
+#### Multi-Platform HTTP Support
+- **Added Fastify Support**: Full support for `@nestjs/platform-fastify` alongside existing Express support
+- **Automatic Platform Detection**: Runtime detection of Express vs Fastify requests without configuration
+- **HTTP Platform Adapter System**: Clean abstraction layer for HTTP platform differences
+- **Raw Body Handling**: Platform-specific raw body extraction for proper webhook signature verification
+
+#### Platform Adapters
+- **ExpressHttpAdapter**: Complete Express request/response handling with middleware support
+- **FastifyHttpAdapter**: Native Fastify request/response handling with plugin compatibility
+- **PlatformDetector**: Intelligent runtime platform detection based on request object characteristics
+
+### ✨ New Features
+- **Zero-Configuration Platform Support**: Works with both Express and Fastify without any configuration changes
+- **Backward Compatibility**: Existing Express applications continue to work unchanged
+- **Performance Benefits**: Users can now leverage Fastify's superior performance when needed
+- **Comprehensive Testing**: Added real integration tests for both Express and Fastify platforms
+
+### 🔧 Technical Improvements
+- **Request/Response Abstraction**: Unified interface for handling HTTP requests across platforms
+- **Signature Verification**: Enhanced webhook signature verification working on both platforms
+- **Memory Efficiency**: Platform adapters use dependency injection for optimal resource usage
+- **Type Safety**: Full TypeScript support for both Express and Fastify types
+
+### 📦 Dependencies
+- **Added**: `@nestjs/platform-fastify` (dev dependency)
+- **Added**: `fastify` (dev dependency) 
+- **Added**: `fastify-raw-body` (dev dependency)
+
+### 🧪 Testing
+- **782+ tests**: Comprehensive test coverage including real platform integration tests
+- **40 test suites**: Added dedicated test suites for Express and Fastify adapters
+- **E2E Testing**: Real Express and Fastify application testing using actual NestJS platform adapters
+- **Unit Testing**: Complete unit test coverage for platform adapters and detection logic
+
+### 📚 Documentation
+- **Updated README**: Added Fastify setup instructions and platform comparison
+- **New Integration Guide**: Created `FASTIFY_INTEGRATION.md` with detailed usage examples
+- **Migration Guide**: Clear instructions for switching between Express and Fastify
+
+### 🎯 User Benefits
+- **Performance Choice**: Choose Express for compatibility or Fastify for performance
+- **Easy Migration**: Migrate from Express to Fastify with minimal code changes
+- **Development Flexibility**: Use the HTTP platform that best fits your needs
+- **Future-Proof**: Ready for any new HTTP platforms NestJS might support
+
+---
+
 ## [1.1.3] - 2025-07-29
 
 ### 🐛 Bug Fixes

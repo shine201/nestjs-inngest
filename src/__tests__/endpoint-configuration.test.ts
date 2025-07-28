@@ -2,6 +2,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { InngestModule } from "../inngest.module";
 import { InngestController } from "../controllers/inngest.controller";
 import { INNGEST_CONFIG } from "../constants";
+import { createSimpleMockHttpAdapter } from "../testing/http-adapter-test-helper";
 
 describe("Endpoint Configuration", () => {
   afterEach(() => {

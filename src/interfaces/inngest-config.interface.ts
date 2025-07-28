@@ -1,5 +1,6 @@
 import { ModuleMetadata, Type } from "@nestjs/common";
 import { DevelopmentModeConfig } from "../utils/development-mode";
+import { HttpPlatformType } from "../adapters/http-platform.interface";
 
 /**
  * Environment configuration for Inngest
@@ -139,6 +140,11 @@ export interface InngestModuleConfig {
    * Development mode configuration
    */
   development?: DevelopmentModeConfig;
+
+  /**
+   * HTTP platform to use (express, fastify, or auto-detect)
+   */
+  httpPlatform?: HttpPlatformType;
 }
 
 /**
