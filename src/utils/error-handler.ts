@@ -122,7 +122,7 @@ export class ErrorHandler {
    */
   async handleError(
     error: Error | InngestError,
-    customOptions?: Partial<ErrorHandlingOptions>
+    customOptions?: Partial<ErrorHandlingOptions>,
   ): Promise<void> {
     const classification = this.classifyError(error);
     const options = { ...classification.strategy, ...customOptions };
@@ -149,13 +149,13 @@ export class ErrorHandler {
   wrapError(
     originalError: Error,
     message: string,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ): InngestRuntimeError {
     return new InngestRuntimeError(
       message,
       context?.functionId,
       context?.runId,
-      originalError
+      originalError,
     );
   }
 
@@ -192,7 +192,8 @@ export class ErrorHandler {
             notify: true,
             rethrow: true,
           },
-          userMessage: "Configuration error occurred. Please check your Inngest configuration.",
+          userMessage:
+            "Configuration error occurred. Please check your Inngest configuration.",
         };
 
       case "INNGEST_FUNCTION_ERROR":
@@ -207,7 +208,8 @@ export class ErrorHandler {
             notify: true,
             rethrow: true,
           },
-          userMessage: "Function registration error. Please check your function definitions.",
+          userMessage:
+            "Function registration error. Please check your function definitions.",
         };
 
       case "INNGEST_EVENT_ERROR":
@@ -426,7 +428,7 @@ export class ErrorHandler {
   private logError(
     error: Error | InngestError,
     classification: ErrorClassification,
-    options: ErrorHandlingOptions
+    options: ErrorHandlingOptions,
   ): void {
     const logLevel = options.logLevel || "error";
     const context = {
@@ -461,7 +463,7 @@ export class ErrorHandler {
   private async notifyError(
     error: Error | InngestError,
     classification: ErrorClassification,
-    options: ErrorHandlingOptions
+    options: ErrorHandlingOptions,
   ): Promise<void> {
     // This is a placeholder for external notification systems
     // In a real implementation, you might integrate with:
@@ -471,7 +473,9 @@ export class ErrorHandler {
     // - Email alerts
     // etc.
 
-    this.logger.debug(`Would notify external systems about ${classification.category} error`);
+    this.logger.debug(
+      `Would notify external systems about ${classification.category} error`,
+    );
   }
 
   /**
@@ -506,8 +510,8 @@ export class ErrorHandler {
       "fetch failed",
     ];
 
-    return networkErrorMessages.some((msg) =>
-      error.message.includes(msg) || error.name.includes(msg)
+    return networkErrorMessages.some(
+      (msg) => error.message.includes(msg) || error.name.includes(msg),
     );
   }
 
@@ -527,8 +531,8 @@ export class ErrorHandler {
    */
   private isAuthError(error: Error): boolean {
     const authMessages = ["Unauthorized", "Forbidden", "401", "403"];
-    return authMessages.some((msg) =>
-      error.message.includes(msg) || error.name.includes(msg)
+    return authMessages.some(
+      (msg) => error.message.includes(msg) || error.name.includes(msg),
     );
   }
 }
@@ -548,7 +552,7 @@ export async function withRetry<T>(
     retryDelay?: number;
     retryCondition?: (error: Error) => boolean;
     onRetry?: (error: Error, attempt: number) => void;
-  } = {}
+  } = {},
 ): Promise<T> {
   const {
     maxRetries = 3,
@@ -595,7 +599,7 @@ export function HandleErrors(options?: Partial<ErrorHandlingOptions>) {
   return function (
     target: any,
     propertyName: string,
-    descriptor: PropertyDescriptor
+    descriptor: PropertyDescriptor,
   ) {
     const method = descriptor.value;
 

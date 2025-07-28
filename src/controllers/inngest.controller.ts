@@ -15,10 +15,18 @@ import { FunctionRegistry } from "../services/function-registry.service";
 import { ExecutionContextService } from "../services/execution-context.service";
 import { SignatureVerificationService } from "../services/signature-verification.service";
 import { MergedInngestConfig } from "../utils/config-validation";
-import { InngestWebhookError, InngestRuntimeError, InngestTimeoutError, InngestRetryError } from "../errors";
+import {
+  InngestWebhookError,
+  InngestRuntimeError,
+  InngestTimeoutError,
+  InngestRetryError,
+} from "../errors";
 import { INNGEST_CONFIG, ERROR_MESSAGES } from "../constants";
 import { errorHandler, ErrorSeverity, withRetry } from "../utils/error-handler";
-import { EnhancedLogger, LoggerFactory } from "../services/enhanced-logger.service";
+import {
+  EnhancedLogger,
+  LoggerFactory,
+} from "../services/enhanced-logger.service";
 import { InngestEvent } from "../interfaces/inngest-event.interface";
 
 /**
@@ -62,7 +70,7 @@ interface InngestWebhookRequest {
 /**
  * Controller for handling Inngest webhooks with enhanced security
  */
-@Controller('/api/inngest')
+@Controller("/api/inngest")
 export class InngestController {
   private readonly logger: EnhancedLogger;
   private readonly loggerFactory = new LoggerFactory();
@@ -71,9 +79,9 @@ export class InngestController {
     @Inject(INNGEST_CONFIG) private readonly config: MergedInngestConfig,
     private readonly functionRegistry: FunctionRegistry,
     private readonly executionContext: ExecutionContextService,
-    private readonly signatureVerification: SignatureVerificationService
+    private readonly signatureVerification: SignatureVerificationService,
   ) {
-    this.logger = this.loggerFactory.createServiceLogger('InngestController');
+    this.logger = this.loggerFactory.createServiceLogger("InngestController");
   }
 
   /**
@@ -84,21 +92,24 @@ export class InngestController {
     @Req() req: Request,
     @Res() res: Response,
     @Headers() headers: Record<string, string>,
-    @Body() body: InngestWebhookRequest
+    @Body() body: InngestWebhookRequest,
   ): Promise<void> {
     const { function_id, run_id, attempt = 1 } = body;
     const startTime = Date.now();
 
     // Create function-specific logger
-    const functionLogger = this.loggerFactory.createFunctionLogger(function_id, run_id);
+    const functionLogger = this.loggerFactory.createFunctionLogger(
+      function_id,
+      run_id,
+    );
 
     try {
       // Log webhook received
-      this.logger.logWebhook('POST', function_id, 'received', undefined, {
+      this.logger.logWebhook("POST", function_id, "received", undefined, {
         runId: run_id,
         attempt,
-        userAgent: headers['user-agent'],
-        contentType: headers['content-type'],
+        userAgent: headers["user-agent"],
+        contentType: headers["content-type"],
       });
 
       // Verify webhook signature using dedicated service
@@ -116,15 +127,26 @@ export class InngestController {
       const result = await this.executeFunction(body);
       const duration = Date.now() - startTime;
 
-      functionLogger.logFunctionSuccess(function_id, run_id, attempt, duration, result);
-      
-      this.logger.logWebhook('POST', function_id, 'processed', HttpStatus.OK, {
+      functionLogger.logFunctionSuccess(
+        function_id,
+        run_id,
+        attempt,
+        duration,
+        result,
+      );
+
+      this.logger.logWebhook("POST", function_id, "processed", HttpStatus.OK, {
         runId: run_id,
         attempt,
         duration,
       });
 
-      this.logger.logPerformance('function-execution', duration, function_id, run_id);
+      this.logger.logPerformance(
+        "function-execution",
+        duration,
+        function_id,
+        run_id,
+      );
 
       // Send success response
       res.status(HttpStatus.OK).json({
@@ -149,7 +171,7 @@ export class InngestController {
   async handlePut(
     @Req() req: Request,
     @Res() res: Response,
-    @Headers() headers: Record<string, string>
+    @Headers() headers: Record<string, string>,
   ): Promise<void> {
     try {
       this.logger.debug("Received PUT webhook for function introspection");
@@ -181,7 +203,7 @@ export class InngestController {
    * Executes an Inngest function
    */
   private async executeFunction(
-    webhookRequest: InngestWebhookRequest
+    webhookRequest: InngestWebhookRequest,
   ): Promise<any> {
     const { function_id, event, run_id, attempt = 1 } = webhookRequest;
 
@@ -190,7 +212,7 @@ export class InngestController {
     if (!functionMetadata) {
       throw new InngestWebhookError(
         `${ERROR_MESSAGES.FUNCTION_NOT_FOUND}: ${function_id}`,
-        HttpStatus.NOT_FOUND
+        HttpStatus.NOT_FOUND,
       );
     }
 
@@ -201,7 +223,7 @@ export class InngestController {
           functionMetadata,
           event,
           run_id,
-          attempt
+          attempt,
         );
 
       // Execute the function with timeout and error handling
@@ -209,17 +231,22 @@ export class InngestController {
         () => this.executionContext.executeFunction(executionContext),
         function_id,
         run_id,
-        attempt
+        attempt,
       );
 
       this.logger.log(
-        `Function ${function_id} executed successfully (run: ${run_id}, attempt: ${attempt})`
+        `Function ${function_id} executed successfully (run: ${run_id}, attempt: ${attempt})`,
       );
 
       return result;
     } catch (error) {
       // Enhanced error handling with classification
-      await this.handleExecutionError(error as Error, function_id, run_id, attempt);
+      await this.handleExecutionError(
+        error as Error,
+        function_id,
+        run_id,
+        attempt,
+      );
       throw error; // Re-throw after handling
     }
   }
@@ -231,19 +258,21 @@ export class InngestController {
     operation: () => Promise<T>,
     functionId: string,
     runId: string,
-    attempt: number
+    attempt: number,
   ): Promise<T> {
     const timeout = this.config.timeout || 30000; // Default 30 seconds
 
     // Create a timeout promise
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
-        reject(new InngestTimeoutError(
-          `Function execution timed out after ${timeout}ms`,
-          functionId,
-          runId,
-          timeout
-        ));
+        reject(
+          new InngestTimeoutError(
+            `Function execution timed out after ${timeout}ms`,
+            functionId,
+            runId,
+            timeout,
+          ),
+        );
       }, timeout);
     });
 
@@ -253,7 +282,12 @@ export class InngestController {
       return result;
     } catch (error) {
       // Classify and enhance error with context
-      const enhancedError = this.enhanceError(error as Error, functionId, runId, attempt);
+      const enhancedError = this.enhanceError(
+        error as Error,
+        functionId,
+        runId,
+        attempt,
+      );
       throw enhancedError;
     }
   }
@@ -265,14 +299,14 @@ export class InngestController {
     error: Error,
     functionId: string,
     runId: string,
-    attempt: number
+    attempt: number,
   ): Promise<void> {
     // Classify the error
     const classification = errorHandler.classifyError(error);
-    
+
     // Determine if this is a retry scenario
     const isRetryExhausted = attempt >= (this.config.retry?.maxAttempts || 3);
-    
+
     // Create appropriate error context
     const errorContext = {
       functionId,
@@ -292,7 +326,7 @@ export class InngestController {
           error: error.message,
           stack: error.stack,
           ...errorContext,
-        }
+        },
       );
     } else if (classification.severity === ErrorSeverity.HIGH) {
       this.logger.error(
@@ -300,7 +334,7 @@ export class InngestController {
         {
           error: error.message,
           ...errorContext,
-        }
+        },
       );
     } else {
       this.logger.warn(
@@ -308,7 +342,7 @@ export class InngestController {
         {
           error: error.message,
           ...errorContext,
-        }
+        },
       );
     }
 
@@ -326,20 +360,19 @@ export class InngestController {
     error: Error,
     functionId: string,
     runId: string,
-    attempt: number
+    attempt: number,
   ): Error {
     // If it's already an Inngest error, return as-is
-    if (error.constructor.name.startsWith('Inngest')) {
+    if (error.constructor.name.startsWith("Inngest")) {
       return error;
     }
 
     // Check for specific error types and wrap appropriately
-    if (error.message.includes('timeout') || error.name.includes('TimeoutError')) {
-      return new InngestTimeoutError(
-        error.message,
-        functionId,
-        runId
-      );
+    if (
+      error.message.includes("timeout") ||
+      error.name.includes("TimeoutError")
+    ) {
+      return new InngestTimeoutError(error.message, functionId, runId);
     }
 
     // Default to runtime error
@@ -347,7 +380,7 @@ export class InngestController {
       `Function execution failed: ${error.message}`,
       functionId,
       runId,
-      error
+      error,
     );
   }
 
@@ -362,7 +395,7 @@ export class InngestController {
       throw new InngestWebhookError(
         "Failed to retrieve function definitions",
         HttpStatus.INTERNAL_SERVER_ERROR,
-        error as Error
+        error as Error,
       );
     }
   }
@@ -379,7 +412,7 @@ export class InngestController {
       attempt?: number;
       duration?: number;
       functionLogger?: EnhancedLogger;
-    }
+    },
   ): void {
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = "Internal server error";
@@ -429,18 +462,18 @@ export class InngestController {
         context.attempt || 1,
         context.duration || 0,
         error,
-        logContext
+        logContext,
       );
     }
 
     // Also use webhook-specific logging
     this.logger.logWebhook(
-      'POST',
-      functionId || 'unknown',
-      'failed',
+      "POST",
+      functionId || "unknown",
+      "failed",
       statusCode,
       logContext,
-      error
+      error,
     );
 
     res.status(statusCode).json(errorResponse);
@@ -456,7 +489,7 @@ export class InngestController {
     signatureVerification: any;
   } {
     const signatureStatus = this.signatureVerification.getVerificationStatus(
-      this.config.signingKey
+      this.config.signingKey,
     );
 
     return {
@@ -491,7 +524,7 @@ export class InngestController {
         issues.push(
           `Signing key validation failed: ${
             error instanceof Error ? error.message : String(error)
-          }`
+          }`,
         );
       }
     }
@@ -506,7 +539,7 @@ export class InngestController {
     const functionCount = this.functionRegistry.getFunctionCount();
     if (functionCount === 0) {
       recommendations.push(
-        "No functions registered - consider adding @InngestFunction decorators"
+        "No functions registered - consider adding @InngestFunction decorators",
       );
     }
 

@@ -160,7 +160,7 @@ describe("InngestController", () => {
       signatureVerification.verifyWebhookSignature.mockResolvedValue();
       functionRegistry.getFunction.mockReturnValue(mockFunctionMetadata);
       executionContext.createExecutionContext.mockResolvedValue(
-        mockExecutionContext
+        mockExecutionContext,
       );
       executionContext.executeFunction.mockResolvedValue("function result");
 
@@ -170,7 +170,7 @@ describe("InngestController", () => {
         mockRequest as Request,
         mockResponse as Response,
         {} as Record<string, string>,
-        mockWebhookRequest
+        mockWebhookRequest,
       );
 
       expect(signatureVerification.verifyWebhookSignature).toHaveBeenCalledWith(
@@ -178,19 +178,19 @@ describe("InngestController", () => {
         {
           signingKey: "test-signing-key",
           toleranceSeconds: 300,
-        }
+        },
       );
       expect(functionRegistry.getFunction).toHaveBeenCalledWith(
-        "test-function"
+        "test-function",
       );
       expect(executionContext.createExecutionContext).toHaveBeenCalledWith(
         mockFunctionMetadata,
         mockWebhookRequest.event,
         "run-123",
-        1
+        1,
       );
       expect(executionContext.executeFunction).toHaveBeenCalledWith(
-        mockExecutionContext
+        mockExecutionContext,
       );
       expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.OK);
       expect(mockResponse.json).toHaveBeenCalledWith({
@@ -203,8 +203,8 @@ describe("InngestController", () => {
       signatureVerification.verifyWebhookSignature.mockRejectedValue(
         new InngestWebhookError(
           "Signature verification failed",
-          HttpStatus.UNAUTHORIZED
-        )
+          HttpStatus.UNAUTHORIZED,
+        ),
       );
 
       mockRequest.body = mockWebhookRequest;
@@ -213,7 +213,7 @@ describe("InngestController", () => {
         mockRequest as Request,
         mockResponse as Response,
         {} as Record<string, string>,
-        mockWebhookRequest
+        mockWebhookRequest,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.UNAUTHORIZED);
@@ -234,7 +234,7 @@ describe("InngestController", () => {
         mockRequest as Request,
         mockResponse as Response,
         {} as Record<string, string>,
-        mockWebhookRequest
+        mockWebhookRequest,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
@@ -260,7 +260,7 @@ describe("InngestController", () => {
       signatureVerification.verifyWebhookSignature.mockResolvedValue();
       functionRegistry.getFunction.mockReturnValue(mockFunctionMetadata);
       executionContext.createExecutionContext.mockRejectedValue(
-        new Error("Execution failed")
+        new Error("Execution failed"),
       );
 
       mockRequest.body = mockWebhookRequest;
@@ -269,11 +269,11 @@ describe("InngestController", () => {
         mockRequest as Request,
         mockResponse as Response,
         {} as Record<string, string>,
-        mockWebhookRequest
+        mockWebhookRequest,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: expect.objectContaining({
@@ -305,7 +305,7 @@ describe("InngestController", () => {
       await controller.handlePut(
         mockRequest as Request,
         mockResponse as Response,
-        {} as Record<string, string>
+        {} as Record<string, string>,
       );
 
       expect(signatureVerification.verifyWebhookSignature).toHaveBeenCalledWith(
@@ -313,7 +313,7 @@ describe("InngestController", () => {
         {
           signingKey: "test-signing-key",
           toleranceSeconds: 300,
-        }
+        },
       );
       expect(functionRegistry.createInngestFunctions).toHaveBeenCalled();
       expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.OK);
@@ -337,11 +337,11 @@ describe("InngestController", () => {
       await controller.handlePut(
         mockRequest as Request,
         mockResponse as Response,
-        {} as Record<string, string>
+        {} as Record<string, string>,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: expect.objectContaining({
@@ -368,7 +368,7 @@ describe("InngestController", () => {
       });
 
       expect(signatureVerification.getVerificationStatus).toHaveBeenCalledWith(
-        "test-signing-key"
+        "test-signing-key",
       );
     });
   });
@@ -376,7 +376,7 @@ describe("InngestController", () => {
   describe("validateWebhookConfig", () => {
     it("should validate valid configuration", () => {
       signatureVerification.validateSignatureConfig.mockImplementation(
-        () => {}
+        () => {},
       );
 
       const validation = controller.validateWebhookConfig();
@@ -384,7 +384,7 @@ describe("InngestController", () => {
       expect(validation.isValid).toBe(true);
       expect(validation.issues).toHaveLength(0);
       expect(
-        signatureVerification.validateSignatureConfig
+        signatureVerification.validateSignatureConfig,
       ).toHaveBeenCalledWith({
         signingKey: "test-signing-key",
       });
@@ -421,10 +421,10 @@ describe("InngestController", () => {
 
       expect(validation.isValid).toBe(false);
       expect(validation.issues).toContain(
-        "No signing key configured - webhooks are not secure"
+        "No signing key configured - webhooks are not secure",
       );
       expect(validation.recommendations).toContain(
-        "Configure a signing key for webhook security"
+        "Configure a signing key for webhook security",
       );
     });
 
@@ -437,7 +437,7 @@ describe("InngestController", () => {
 
       expect(validation.isValid).toBe(false);
       expect(validation.issues).toContain(
-        "Signing key validation failed: Invalid signing key"
+        "Signing key validation failed: Invalid signing key",
       );
     });
 
@@ -473,20 +473,20 @@ describe("InngestController", () => {
       expect(validation.isValid).toBe(false);
       expect(validation.issues).toContain("No endpoint configured");
       expect(validation.recommendations).toContain(
-        "Configure webhook endpoint path"
+        "Configure webhook endpoint path",
       );
     });
 
     it("should recommend adding functions when none are registered", () => {
       functionRegistry.getFunctionCount.mockReturnValue(0);
       signatureVerification.validateSignatureConfig.mockImplementation(
-        () => {}
+        () => {},
       );
 
       const validation = controller.validateWebhookConfig();
 
       expect(validation.recommendations).toContain(
-        "No functions registered - consider adding @InngestFunction decorators"
+        "No functions registered - consider adding @InngestFunction decorators",
       );
     });
   });
@@ -495,10 +495,10 @@ describe("InngestController", () => {
     it("should handle InngestWebhookError correctly", async () => {
       const webhookError = new InngestWebhookError(
         "Test webhook error",
-        HttpStatus.BAD_REQUEST
+        HttpStatus.BAD_REQUEST,
       );
       signatureVerification.verifyWebhookSignature.mockRejectedValue(
-        webhookError
+        webhookError,
       );
 
       mockRequest.body = {
@@ -512,7 +512,7 @@ describe("InngestController", () => {
         mockRequest as Request,
         mockResponse as Response,
         {} as Record<string, string>,
-        mockRequest.body as any
+        mockRequest.body as any,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
@@ -528,7 +528,7 @@ describe("InngestController", () => {
       const runtimeError = new InngestRuntimeError(
         "Test runtime error",
         "test-function",
-        "run-123"
+        "run-123",
       );
 
       const mockFunctionMetadata = {
@@ -553,11 +553,11 @@ describe("InngestController", () => {
         mockRequest as Request,
         mockResponse as Response,
         {} as Record<string, string>,
-        mockRequest.body as any
+        mockRequest.body as any,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: expect.objectContaining({
@@ -571,7 +571,7 @@ describe("InngestController", () => {
     it("should handle generic errors correctly", async () => {
       const genericError = new Error("Generic error");
       signatureVerification.verifyWebhookSignature.mockRejectedValue(
-        genericError
+        genericError,
       );
 
       mockRequest.body = {
@@ -585,11 +585,11 @@ describe("InngestController", () => {
         mockRequest as Request,
         mockResponse as Response,
         {} as Record<string, string>,
-        mockRequest.body as any
+        mockRequest.body as any,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: expect.objectContaining({

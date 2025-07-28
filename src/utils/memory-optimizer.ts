@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from "@nestjs/common";
 
 /**
  * Memory usage statistics
@@ -24,7 +24,7 @@ class ObjectPool<T> {
   constructor(
     factory: () => T,
     maxSize: number = 100,
-    resetFn?: (obj: T) => void
+    resetFn?: (obj: T) => void,
   ) {
     this.factory = factory;
     this.maxSize = maxSize;
@@ -33,11 +33,11 @@ class ObjectPool<T> {
 
   acquire(): T {
     let obj = this.available.pop();
-    
+
     if (!obj) {
       obj = this.factory();
     }
-    
+
     this.inUse.add(obj);
     return obj;
   }
@@ -46,9 +46,9 @@ class ObjectPool<T> {
     if (!this.inUse.has(obj)) {
       return;
     }
-    
+
     this.inUse.delete(obj);
-    
+
     if (this.available.length < this.maxSize) {
       if (this.resetFn) {
         this.resetFn(obj);
@@ -75,9 +75,11 @@ class ObjectPool<T> {
  */
 class WeakRefCache<K, V extends object> {
   private cache = new Map<K, any>();
-  private finalizationRegistry = (global as any).FinalizationRegistry ? new (global as any).FinalizationRegistry((key: K) => {
-    this.cache.delete(key);
-  }) : null;
+  private finalizationRegistry = (global as any).FinalizationRegistry
+    ? new (global as any).FinalizationRegistry((key: K) => {
+        this.cache.delete(key);
+      })
+    : null;
 
   set(key: K, value: V): void {
     // Clean up existing entry if any
@@ -86,7 +88,10 @@ class WeakRefCache<K, V extends object> {
       this.finalizationRegistry.unregister(existing);
     }
 
-    const weakRef = (global as any).WeakRef ? new (global as any).WeakRef(value) : { deref: () => value };
+    const weakRef = (global as any).WeakRef
+      ? new (global as any).WeakRef(value)
+      : { deref: () => value };
+    // const weakRef = new weakRef(value);
     this.cache.set(key, weakRef);
     if (this.finalizationRegistry) {
       this.finalizationRegistry.register(value, key, weakRef);
@@ -144,17 +149,17 @@ class WeakRefCache<K, V extends object> {
   size(): number {
     // Clean up stale entries and return actual size
     const keysToDelete: K[] = [];
-    
+
     for (const [key, weakRef] of this.cache.entries()) {
       if (weakRef.deref() === undefined) {
         keysToDelete.push(key);
       }
     }
-    
+
     for (const key of keysToDelete) {
       this.cache.delete(key);
     }
-    
+
     return this.cache.size;
   }
 }
@@ -164,44 +169,56 @@ class WeakRefCache<K, V extends object> {
  */
 class StringInterning {
   private static readonly internedStrings = new Map<string, any>();
-  private static readonly finalizationRegistry = (global as any).FinalizationRegistry ? new (global as any).FinalizationRegistry((str: string) => {
-    StringInterning.internedStrings.delete(str);
-  }) : null;
+  private static readonly finalizationRegistry = (global as any)
+    .FinalizationRegistry
+    ? new (global as any).FinalizationRegistry((str: string) => {
+        StringInterning.internedStrings.delete(str);
+      })
+    : null;
 
   static intern(str: string): string {
     const existing = this.internedStrings.get(str);
     if (existing) {
-      const internedStr = existing.deref();
-      if (internedStr !== undefined) {
-        return internedStr;
+      const wrapper = existing.deref();
+      if (wrapper !== undefined) {
+        return wrapper.value;
       }
     }
 
     // Create new interned string
     const internedStr = str.slice(); // Create a copy
-    const weakRef = (global as any).WeakRef ? new (global as any).WeakRef(internedStr) : { deref: () => internedStr };
+    // Create a wrapper object for the string to make it trackable
+    const stringWrapper = { value: internedStr };
+    const weakRef =
+      typeof (global as any).WeakRef !== "undefined"
+        ? new (global as any).WeakRef(stringWrapper)
+        : { deref: () => stringWrapper };
     this.internedStrings.set(str, weakRef);
-    if (this.finalizationRegistry) {
-      this.finalizationRegistry.register(internedStr, str, weakRef);
+    if (
+      this.finalizationRegistry &&
+      typeof (global as any).WeakRef !== "undefined"
+    ) {
+      // Only register with FinalizationRegistry if WeakRef is actually available
+      this.finalizationRegistry.register(stringWrapper, str, weakRef);
     }
-    
+
     return internedStr;
   }
 
   static size(): number {
     // Clean up stale entries
     const keysToDelete: string[] = [];
-    
+
     for (const [key, weakRef] of this.internedStrings.entries()) {
       if (weakRef.deref() === undefined) {
         keysToDelete.push(key);
       }
     }
-    
+
     for (const key of keysToDelete) {
       this.internedStrings.delete(key);
     }
-    
+
     return this.internedStrings.size;
   }
 
@@ -217,7 +234,7 @@ class StringInterning {
 
 /**
  * Memory optimizer for reducing memory usage and improving garbage collection
- * 
+ *
  * Features:
  * 1. Object pooling for expensive objects
  * 2. WeakRef-based caching to prevent memory leaks
@@ -229,7 +246,7 @@ class StringInterning {
 @Injectable()
 export class MemoryOptimizer implements OnModuleDestroy {
   private readonly logger = new Logger(MemoryOptimizer.name);
-  
+
   // Object pools for common objects
   private readonly eventObjectPool = new ObjectPool(
     () => ({}),
@@ -239,30 +256,30 @@ export class MemoryOptimizer implements OnModuleDestroy {
       for (const key in obj) {
         delete (obj as any)[key];
       }
-    }
+    },
   );
-  
+
   private readonly metadataObjectPool = new ObjectPool(
-    () => ({ target: null, propertyKey: '', config: null, handler: null }),
+    () => ({ target: null, propertyKey: "", config: null, handler: null }),
     50,
     (obj) => {
       obj.target = null;
-      obj.propertyKey = '';
+      obj.propertyKey = "";
       obj.config = null;
       obj.handler = null;
-    }
+    },
   );
-  
+
   // WeakRef caches for memory-efficient caching
   private readonly functionMetadataCache = new WeakRefCache<string, any>();
   private readonly configValidationCache = new Map<string, boolean>();
-  
+
   // Memory monitoring
   private memoryCheckInterval: NodeJS.Timeout | null = null;
   private lastMemoryCheck = 0;
   private memoryHistory: MemoryStats[] = [];
   private readonly maxHistorySize = 100;
-  
+
   // Memory thresholds for optimization
   private readonly memoryThresholds = {
     warning: 500 * 1024 * 1024, // 500MB
@@ -272,7 +289,7 @@ export class MemoryOptimizer implements OnModuleDestroy {
 
   constructor() {
     this.startMemoryMonitoring();
-    this.logger.log('Memory optimizer initialized with advanced features');
+    this.logger.log("Memory optimizer initialized with advanced features");
   }
 
   /**
@@ -344,13 +361,14 @@ export class MemoryOptimizer implements OnModuleDestroy {
   createLeanObject(properties: Record<string, any>): any {
     // Use Object.create(null) to avoid prototype overhead
     const obj = Object.create(null);
-    
+
     // Intern string properties for memory efficiency
     for (const [key, value] of Object.entries(properties)) {
       const internedKey = this.internString(key);
-      obj[internedKey] = typeof value === 'string' ? this.internString(value) : value;
+      obj[internedKey] =
+        typeof value === "string" ? this.internString(value) : value;
     }
-    
+
     return obj;
   }
 
@@ -358,27 +376,27 @@ export class MemoryOptimizer implements OnModuleDestroy {
    * Optimizes an existing object for memory efficiency
    */
   optimizeObject(obj: any): any {
-    if (!obj || typeof obj !== 'object') {
+    if (!obj || typeof obj !== "object") {
       return obj;
     }
 
     // Create optimized version
     const optimized = Object.create(null);
-    
+
     for (const [key, value] of Object.entries(obj)) {
       const internedKey = this.internString(key);
-      
-      if (typeof value === 'string') {
+
+      if (typeof value === "string") {
         optimized[internedKey] = this.internString(value);
       } else if (Array.isArray(value)) {
         optimized[internedKey] = this.optimizeArray(value);
-      } else if (value && typeof value === 'object') {
+      } else if (value && typeof value === "object") {
         optimized[internedKey] = this.optimizeObject(value);
       } else {
         optimized[internedKey] = value;
       }
     }
-    
+
     return optimized;
   }
 
@@ -386,10 +404,10 @@ export class MemoryOptimizer implements OnModuleDestroy {
    * Optimizes an array for memory efficiency
    */
   private optimizeArray(arr: any[]): any[] {
-    return arr.map(item => {
-      if (typeof item === 'string') {
+    return arr.map((item) => {
+      if (typeof item === "string") {
         return this.internString(item);
-      } else if (item && typeof item === 'object') {
+      } else if (item && typeof item === "object") {
         return this.optimizeObject(item);
       }
       return item;
@@ -404,11 +422,15 @@ export class MemoryOptimizer implements OnModuleDestroy {
       const beforeGC = process.memoryUsage();
       global.gc();
       const afterGC = process.memoryUsage();
-      
+
       const memoryFreed = beforeGC.heapUsed - afterGC.heapUsed;
-      this.logger.log(`Forced GC: Freed ${this.formatBytes(memoryFreed)} of memory`);
+      this.logger.log(
+        `Forced GC: Freed ${this.formatBytes(memoryFreed)} of memory`,
+      );
     } else {
-      this.logger.warn('Garbage collection not available (run with --expose-gc)');
+      this.logger.warn(
+        "Garbage collection not available (run with --expose-gc)",
+      );
     }
   }
 
@@ -427,23 +449,29 @@ export class MemoryOptimizer implements OnModuleDestroy {
   private checkMemoryUsage(): void {
     const memStats = this.getMemoryStats();
     this.memoryHistory.push(memStats);
-    
+
     // Keep history size manageable
     if (this.memoryHistory.length > this.maxHistorySize) {
       this.memoryHistory.shift();
     }
-    
+
     // Check for memory pressure
     if (memStats.heapUsed > this.memoryThresholds.critical) {
-      this.logger.warn(`Critical memory usage: ${this.formatBytes(memStats.heapUsed)}`);
+      this.logger.warn(
+        `Critical memory usage: ${this.formatBytes(memStats.heapUsed)}`,
+      );
       this.performEmergencyCleanup();
     } else if (memStats.heapUsed > this.memoryThresholds.gcTrigger) {
-      this.logger.log(`High memory usage detected: ${this.formatBytes(memStats.heapUsed)}`);
+      this.logger.log(
+        `High memory usage detected: ${this.formatBytes(memStats.heapUsed)}`,
+      );
       this.performOptimization();
     } else if (memStats.heapUsed > this.memoryThresholds.warning) {
-      this.logger.debug(`Memory usage warning: ${this.formatBytes(memStats.heapUsed)}`);
+      this.logger.debug(
+        `Memory usage warning: ${this.formatBytes(memStats.heapUsed)}`,
+      );
     }
-    
+
     this.lastMemoryCheck = Date.now();
   }
 
@@ -454,12 +482,13 @@ export class MemoryOptimizer implements OnModuleDestroy {
     // Clean up WeakRef caches
     this.functionMetadataCache.size(); // Triggers cleanup
     // Regular Map doesn't need cleanup trigger
-    
+
     // Clean up string interning
     StringInterning.size(); // Triggers cleanup
-    
+
     // Suggest garbage collection
-    if (global.gc && Math.random() < 0.3) { // 30% chance to avoid too frequent GC
+    if (global.gc && Math.random() < 0.3) {
+      // 30% chance to avoid too frequent GC
       this.forceGarbageCollection();
     }
   }
@@ -468,14 +497,14 @@ export class MemoryOptimizer implements OnModuleDestroy {
    * Performs emergency cleanup when memory is critically high
    */
   private performEmergencyCleanup(): void {
-    this.logger.warn('Performing emergency memory cleanup');
-    
+    this.logger.warn("Performing emergency memory cleanup");
+
     // Clear all caches
     this.clearAllCaches();
-    
+
     // Force garbage collection
     this.forceGarbageCollection();
-    
+
     // Trim memory history
     this.memoryHistory = this.memoryHistory.slice(-10);
   }
@@ -517,34 +546,48 @@ export class MemoryOptimizer implements OnModuleDestroy {
       samples: number;
       averageUsage: number;
       peakUsage: number;
-      trend: 'increasing' | 'decreasing' | 'stable';
+      trend: "increasing" | "decreasing" | "stable";
     };
   } {
     const current = this.getMemoryStats();
     const thresholds = this.memoryThresholds;
-    
+
     // Calculate memory trend
     const recentSamples = this.memoryHistory.slice(-10);
-    const averageUsage = recentSamples.length > 0 ?
-      recentSamples.reduce((sum, stat) => sum + stat.heapUsed, 0) / recentSamples.length : 0;
-    
-    const peakUsage = Math.max(...this.memoryHistory.map(stat => stat.heapUsed));
-    
-    let trend: 'increasing' | 'decreasing' | 'stable' = 'stable';
+    const averageUsage =
+      recentSamples.length > 0
+        ? recentSamples.reduce((sum, stat) => sum + stat.heapUsed, 0) /
+          recentSamples.length
+        : 0;
+
+    const peakUsage = Math.max(
+      ...this.memoryHistory.map((stat) => stat.heapUsed),
+    );
+
+    let trend: "increasing" | "decreasing" | "stable" = "stable";
     if (recentSamples.length >= 5) {
-      const firstHalf = recentSamples.slice(0, Math.floor(recentSamples.length / 2));
-      const secondHalf = recentSamples.slice(Math.floor(recentSamples.length / 2));
-      
-      const firstAvg = firstHalf.reduce((sum, stat) => sum + stat.heapUsed, 0) / firstHalf.length;
-      const secondAvg = secondHalf.reduce((sum, stat) => sum + stat.heapUsed, 0) / secondHalf.length;
-      
+      const firstHalf = recentSamples.slice(
+        0,
+        Math.floor(recentSamples.length / 2),
+      );
+      const secondHalf = recentSamples.slice(
+        Math.floor(recentSamples.length / 2),
+      );
+
+      const firstAvg =
+        firstHalf.reduce((sum, stat) => sum + stat.heapUsed, 0) /
+        firstHalf.length;
+      const secondAvg =
+        secondHalf.reduce((sum, stat) => sum + stat.heapUsed, 0) /
+        secondHalf.length;
+
       const difference = secondAvg - firstAvg;
       const threshold = averageUsage * 0.05; // 5% threshold
-      
+
       if (difference > threshold) {
-        trend = 'increasing';
+        trend = "increasing";
       } else if (difference < -threshold) {
-        trend = 'decreasing';
+        trend = "decreasing";
       }
     }
 
@@ -573,14 +616,18 @@ export class MemoryOptimizer implements OnModuleDestroy {
    * Optimizes memory usage by clearing unnecessary caches and triggering GC
    */
   optimize(): void {
-    this.logger.log('Starting memory optimization');
-    
+    this.logger.log("Starting memory optimization");
+
     // Clean up caches
     this.performOptimization();
-    
+
     // Log results
     const memoryAfter = this.getMemoryStats();
-    this.logger.log(`Memory optimization completed. Current usage: ${this.formatBytes(memoryAfter.heapUsed)}`);
+    this.logger.log(
+      `Memory optimization completed. Current usage: ${this.formatBytes(
+        memoryAfter.heapUsed,
+      )}`,
+    );
   }
 
   /**
@@ -592,8 +639,8 @@ export class MemoryOptimizer implements OnModuleDestroy {
     this.eventObjectPool.clear();
     this.metadataObjectPool.clear();
     StringInterning.clear();
-    
-    this.logger.log('All memory caches cleared');
+
+    this.logger.log("All memory caches cleared");
   }
 
   /**
@@ -601,22 +648,22 @@ export class MemoryOptimizer implements OnModuleDestroy {
    */
   setMemoryThresholds(thresholds: Partial<typeof this.memoryThresholds>): void {
     Object.assign(this.memoryThresholds, thresholds);
-    this.logger.log('Memory thresholds updated');
+    this.logger.log("Memory thresholds updated");
   }
 
   /**
    * Formats bytes to human-readable format
    */
   private formatBytes(bytes: number): string {
-    const units = ['B', 'KB', 'MB', 'GB'];
+    const units = ["B", "KB", "MB", "GB"];
     let size = bytes;
     let unitIndex = 0;
-    
+
     while (size >= 1024 && unitIndex < units.length - 1) {
       size /= 1024;
       unitIndex++;
     }
-    
+
     return `${size.toFixed(2)} ${units[unitIndex]}`;
   }
 
@@ -624,26 +671,26 @@ export class MemoryOptimizer implements OnModuleDestroy {
    * Creates a memory-efficient deep clone
    */
   efficientClone<T>(obj: T): T {
-    if (obj === null || typeof obj !== 'object') {
+    if (obj === null || typeof obj !== "object") {
       return obj;
     }
-    
+
     if (obj instanceof Date) {
       return new Date(obj.getTime()) as unknown as T;
     }
-    
+
     if (Array.isArray(obj)) {
-      return obj.map(item => this.efficientClone(item)) as unknown as T;
+      return obj.map((item) => this.efficientClone(item)) as unknown as T;
     }
-    
+
     // Create object with null prototype for efficiency
     const cloned = Object.create(null);
-    
+
     for (const [key, value] of Object.entries(obj)) {
       const internedKey = this.internString(key);
       cloned[internedKey] = this.efficientClone(value);
     }
-    
+
     return cloned as T;
   }
 
@@ -652,48 +699,64 @@ export class MemoryOptimizer implements OnModuleDestroy {
    */
   analyzeMemoryUsage(): {
     recommendations: string[];
-    severity: 'low' | 'medium' | 'high';
+    severity: "low" | "medium" | "high";
     optimizationOpportunities: string[];
   } {
     const info = this.getDetailedMemoryInfo();
     const recommendations: string[] = [];
     const optimizationOpportunities: string[] = [];
-    let severity: 'low' | 'medium' | 'high' = 'low';
-    
+    let severity: "low" | "medium" | "high" = "low";
+
     // Analyze current usage
     if (info.current.heapUsed > this.memoryThresholds.critical) {
-      severity = 'high';
-      recommendations.push('Critical memory usage detected. Consider reducing cache sizes or restarting the application.');
+      severity = "high";
+      recommendations.push(
+        "Critical memory usage detected. Consider reducing cache sizes or restarting the application.",
+      );
     } else if (info.current.heapUsed > this.memoryThresholds.warning) {
-      severity = 'medium';
-      recommendations.push('High memory usage. Consider optimizing data structures or clearing caches.');
+      severity = "medium";
+      recommendations.push(
+        "High memory usage. Consider optimizing data structures or clearing caches.",
+      );
     }
-    
+
     // Analyze trend
-    if (info.memoryTrend.trend === 'increasing') {
-      severity = severity === 'low' ? 'medium' : 'high';
-      recommendations.push('Memory usage is increasing over time. Check for memory leaks.');
+    if (info.memoryTrend.trend === "increasing") {
+      severity = severity === "low" ? "medium" : "high";
+      recommendations.push(
+        "Memory usage is increasing over time. Check for memory leaks.",
+      );
     }
-    
+
     // Analyze cache efficiency
     if (info.cacheStats.functionMetadata > 1000) {
-      optimizationOpportunities.push('Large function metadata cache. Consider implementing LRU eviction.');
+      optimizationOpportunities.push(
+        "Large function metadata cache. Consider implementing LRU eviction.",
+      );
     }
-    
+
     if (info.cacheStats.internedStrings > 10000) {
-      optimizationOpportunities.push('Large string interning cache. Consider periodic cleanup.');
+      optimizationOpportunities.push(
+        "Large string interning cache. Consider periodic cleanup.",
+      );
     }
-    
+
     // Pool utilization
-    const eventPoolUtilization = info.poolStats.eventObjects.inUse / 
-      (info.poolStats.eventObjects.available + info.poolStats.eventObjects.inUse);
-    
+    const eventPoolUtilization =
+      info.poolStats.eventObjects.inUse /
+      (info.poolStats.eventObjects.available +
+        info.poolStats.eventObjects.inUse);
+
     if (eventPoolUtilization > 0.8) {
-      optimizationOpportunities.push('High event object pool utilization. Consider increasing pool size.');
+      optimizationOpportunities.push(
+        "High event object pool utilization. Consider increasing pool size.",
+      );
     } else if (eventPoolUtilization < 0.1) {
-      optimizationOpportunities.push('Low event object pool utilization. Consider decreasing pool size.');
+      optimizationOpportunities.push(
+        "Low event object pool utilization. Consider decreasing pool size.",
+      );
     }
-    
+
     return {
       recommendations,
       severity,
@@ -705,14 +768,14 @@ export class MemoryOptimizer implements OnModuleDestroy {
    * Module cleanup
    */
   async onModuleDestroy(): Promise<void> {
-    this.logger.log('Shutting down memory optimizer...');
-    
+    this.logger.log("Shutting down memory optimizer...");
+
     if (this.memoryCheckInterval) {
       clearInterval(this.memoryCheckInterval);
     }
-    
+
     this.clearAllCaches();
-    
-    this.logger.log('Memory optimizer shutdown completed');
+
+    this.logger.log("Memory optimizer shutdown completed");
   }
 }

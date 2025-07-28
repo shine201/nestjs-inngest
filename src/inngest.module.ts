@@ -6,7 +6,10 @@ import {
   InngestConfigFactory,
 } from "./interfaces/inngest-config.interface";
 import { validateAndMergeConfig } from "./utils/config-validation";
-import { DevelopmentMode, DevelopmentModeConfig } from "./utils/development-mode";
+import {
+  DevelopmentMode,
+  DevelopmentModeConfig,
+} from "./utils/development-mode";
 import { InngestService } from "./services/inngest.service";
 import { FunctionRegistry } from "./services/function-registry.service";
 import { ExecutionContextService } from "./services/execution-context.service";
@@ -153,7 +156,7 @@ export class InngestModule {
    * Creates providers for asynchronous configuration
    */
   private static createAsyncProviders(
-    options: InngestModuleAsyncOptions
+    options: InngestModuleAsyncOptions,
   ): Provider[] {
     if (options.useFactory) {
       return [this.createAsyncConfigProvider(options)];
@@ -175,7 +178,7 @@ export class InngestModule {
    * Creates the async configuration provider
    */
   private static createAsyncConfigProvider(
-    options: InngestModuleAsyncOptions
+    options: InngestModuleAsyncOptions,
   ): Provider {
     if (options.useFactory) {
       return {

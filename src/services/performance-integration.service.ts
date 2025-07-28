@@ -1,8 +1,13 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { OptimizedFunctionRegistry } from './optimized-function-registry.service';
-import { MemoryOptimizer } from '../utils/memory-optimizer';
-import { RequestOptimizer } from '../utils/request-optimizer';
-import { ConnectionPool } from '../utils/connection-pool';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from "@nestjs/common";
+import { OptimizedFunctionRegistry } from "./optimized-function-registry.service";
+import { MemoryOptimizer } from "../utils/memory-optimizer";
+import { RequestOptimizer } from "../utils/request-optimizer";
+import { ConnectionPool } from "../utils/connection-pool";
 
 /**
  * Comprehensive performance statistics
@@ -27,13 +32,13 @@ interface PerformanceStats {
   system: {
     uptime: number;
     performanceRecommendations: string[];
-    overallHealth: 'excellent' | 'good' | 'warning' | 'critical';
+    overallHealth: "excellent" | "good" | "warning" | "critical";
   };
 }
 
 /**
  * Performance integration service that orchestrates all optimization components
- * 
+ *
  * Features:
  * 1. Centralized performance monitoring
  * 2. Automatic optimization triggers
@@ -43,19 +48,21 @@ interface PerformanceStats {
  * 6. Adaptive optimization based on usage patterns
  */
 @Injectable()
-export class PerformanceIntegrationService implements OnModuleInit, OnModuleDestroy {
+export class PerformanceIntegrationService
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(PerformanceIntegrationService.name);
-  
+
   // Monitoring intervals
   private healthCheckInterval: NodeJS.Timeout | null = null;
   private optimizationInterval: NodeJS.Timeout | null = null;
-  
+
   // Performance tracking
   private startTime = Date.now();
   private lastOptimizationRun = 0;
   private performanceHistory: PerformanceStats[] = [];
   private readonly maxHistorySize = 100;
-  
+
   // Thresholds for automatic optimization
   private readonly optimizationThresholds = {
     memoryUsage: 500 * 1024 * 1024, // 500MB
@@ -68,20 +75,20 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
     private readonly functionRegistry: OptimizedFunctionRegistry,
     private readonly memoryOptimizer: MemoryOptimizer,
     private readonly requestOptimizer: RequestOptimizer,
-    private readonly connectionPool: ConnectionPool
+    private readonly connectionPool: ConnectionPool,
   ) {}
 
   async onModuleInit(): Promise<void> {
-    this.logger.log('Performance integration service initializing...');
-    
+    this.logger.log("Performance integration service initializing...");
+
     // Start monitoring
     this.startHealthMonitoring();
     this.startPeriodicOptimization();
-    
+
     // Perform initial optimization
     await this.performFullOptimization();
-    
-    this.logger.log('Performance integration service initialized');
+
+    this.logger.log("Performance integration service initialized");
   }
 
   /**
@@ -109,17 +116,16 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
     try {
       const stats = this.getComprehensiveStats();
       this.performanceHistory.push(stats);
-      
+
       // Keep history manageable
       if (this.performanceHistory.length > this.maxHistorySize) {
         this.performanceHistory.shift();
       }
-      
+
       // Analyze health status
       this.analyzeSystemHealth(stats);
-      
     } catch (error) {
-      this.logger.error('Health check failed:', error);
+      this.logger.error("Health check failed:", error);
     }
   }
 
@@ -128,28 +134,35 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
    */
   private analyzeSystemHealth(stats: PerformanceStats): void {
     const warnings: string[] = [];
-    
+
     // Check memory usage
-    if (stats.memory.current.heapUsed > this.optimizationThresholds.memoryUsage) {
-      warnings.push('High memory usage detected');
+    if (
+      stats.memory.current.heapUsed > this.optimizationThresholds.memoryUsage
+    ) {
+      warnings.push("High memory usage detected");
       this.triggerMemoryOptimization();
     }
-    
+
     // Check cache hit rate
-    if (stats.registry.cacheHitRate < this.optimizationThresholds.cacheHitRateThreshold) {
-      warnings.push('Low cache hit rate');
+    if (
+      stats.registry.cacheHitRate <
+      this.optimizationThresholds.cacheHitRateThreshold
+    ) {
+      warnings.push("Low cache hit rate");
       this.optimizeCacheConfiguration();
     }
-    
+
     // Check network performance
     const networkStats = stats.network.connectionPool;
-    if (networkStats.errorRate > this.optimizationThresholds.errorRateThreshold) {
-      warnings.push('High network error rate');
+    if (
+      networkStats.errorRate > this.optimizationThresholds.errorRateThreshold
+    ) {
+      warnings.push("High network error rate");
       this.optimizeNetworkConfiguration();
     }
-    
+
     if (warnings.length > 0) {
-      this.logger.warn(`System health warnings: ${warnings.join(', ')}`);
+      this.logger.warn(`System health warnings: ${warnings.join(", ")}`);
     }
   }
 
@@ -158,22 +171,21 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
    */
   private async performAutomaticOptimization(): Promise<void> {
     try {
-      this.logger.debug('Starting automatic optimization cycle');
-      
+      this.logger.debug("Starting automatic optimization cycle");
+
       // Memory optimization
       await this.optimizeMemoryUsage();
-      
+
       // Network optimization
       await this.optimizeNetworkPerformance();
-      
+
       // Cache optimization
       await this.optimizeCaches();
-      
+
       this.lastOptimizationRun = Date.now();
-      this.logger.debug('Automatic optimization cycle completed');
-      
+      this.logger.debug("Automatic optimization cycle completed");
     } catch (error) {
-      this.logger.error('Automatic optimization failed:', error);
+      this.logger.error("Automatic optimization failed:", error);
     }
   }
 
@@ -181,25 +193,24 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
    * Performs full system optimization
    */
   async performFullOptimization(): Promise<void> {
-    this.logger.log('Starting full system optimization');
-    
+    this.logger.log("Starting full system optimization");
+
     try {
       // Memory optimization
       await this.optimizeMemoryUsage();
-      
+
       // Network optimization
       await this.optimizeNetworkPerformance();
-      
+
       // Cache optimization
       await this.optimizeCaches();
-      
-      // Registry optimization  
+
+      // Registry optimization
       await this.optimizeRegistry();
-      
-      this.logger.log('Full system optimization completed');
-      
+
+      this.logger.log("Full system optimization completed");
     } catch (error) {
-      this.logger.error('Full optimization failed:', error);
+      this.logger.error("Full optimization failed:", error);
       throw error;
     }
   }
@@ -208,20 +219,27 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
    * Optimizes memory usage across all components
    */
   private async optimizeMemoryUsage(): Promise<void> {
-    // Analyze memory usage patterns
-    const memoryAnalysis = this.memoryOptimizer.analyzeMemoryUsage();
-    
-    if (memoryAnalysis.severity === 'high') {
-      this.logger.warn('Critical memory usage - performing aggressive optimization');
-      this.memoryOptimizer.clearAllCaches();
-      this.memoryOptimizer.forceGarbageCollection();
-    } else if (memoryAnalysis.severity === 'medium') {
-      this.memoryOptimizer.optimize();
-    }
-    
-    // Apply optimization recommendations
-    for (const recommendation of memoryAnalysis.optimizationOpportunities) {
-      this.logger.debug(`Memory optimization: ${recommendation}`);
+    try {
+      // Analyze memory usage patterns
+      const memoryAnalysis = this.memoryOptimizer.analyzeMemoryUsage();
+
+      if (memoryAnalysis.severity === "high") {
+        this.logger.warn(
+          "Critical memory usage - performing aggressive optimization",
+        );
+        this.memoryOptimizer.clearAllCaches();
+        this.memoryOptimizer.forceGarbageCollection();
+      } else if (memoryAnalysis.severity === "medium") {
+        this.memoryOptimizer.optimize();
+      }
+
+      // Apply optimization recommendations
+      for (const recommendation of memoryAnalysis.optimizationOpportunities) {
+        this.logger.debug(`Memory optimization: ${recommendation}`);
+      }
+    } catch (error) {
+      this.logger.error("Full optimization failed:", error);
+      // Don't rethrow - handle gracefully
     }
   }
 
@@ -231,15 +249,15 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
   private async optimizeNetworkPerformance(): Promise<void> {
     // Auto-optimize request configuration
     this.requestOptimizer.autoOptimizeConfig();
-    
+
     // Optimize connection pool
     this.connectionPool.optimizeAgents();
-    
+
     // Warm up connections if needed
     const poolStats = this.connectionPool.getStats();
     if (poolStats.idleConnections < 5) {
       // Warmup connections for better performance
-      await this.connectionPool.warmupPool('https://api.inngest.com', 3);
+      await this.connectionPool.warmupPool("https://api.inngest.com", 3);
     }
   }
 
@@ -248,10 +266,10 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
    */
   private async optimizeCaches(): Promise<void> {
     const registryMetrics = this.functionRegistry.getPerformanceMetrics();
-    
+
     // Clear stale caches if hit rate is low
     if (registryMetrics.cacheHitRate < 0.5) {
-      this.logger.debug('Low cache hit rate detected - clearing stale caches');
+      this.logger.debug("Low cache hit rate detected - clearing stale caches");
       // The registry will automatically clean up stale entries
     }
   }
@@ -264,7 +282,10 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
     try {
       this.functionRegistry.validateFunctions();
     } catch (error) {
-      this.logger.error('Function validation failed during optimization:', error);
+      this.logger.error(
+        "Function validation failed during optimization:",
+        error,
+      );
     }
   }
 
@@ -272,7 +293,7 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
    * Triggers memory optimization when thresholds are exceeded
    */
   private triggerMemoryOptimization(): void {
-    this.logger.log('Triggering emergency memory optimization');
+    this.logger.log("Triggering emergency memory optimization");
     this.memoryOptimizer.optimize();
   }
 
@@ -281,9 +302,10 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
    */
   private optimizeCacheConfiguration(): void {
     const memoryInfo = this.memoryOptimizer.getDetailedMemoryInfo();
-    
+
     // Adjust cache thresholds based on memory availability
-    if (memoryInfo.current.heapUsed > 400 * 1024 * 1024) { // 400MB
+    if (memoryInfo.current.heapUsed > 400 * 1024 * 1024) {
+      // 400MB
       this.memoryOptimizer.setMemoryThresholds({
         warning: 400 * 1024 * 1024,
         critical: 600 * 1024 * 1024,
@@ -297,9 +319,12 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
    */
   private optimizeNetworkConfiguration(): void {
     const connectionStats = this.connectionPool.getPerformanceMetrics();
-    
-    if (connectionStats.errorRate > 0.1) { // 10% error rate
-      this.logger.warn('High network error rate - forcing circuit breaker close');
+
+    if (connectionStats.errorRate > 0.1) {
+      // 10% error rate
+      this.logger.warn(
+        "High network error rate - forcing circuit breaker close",
+      );
       this.connectionPool.forceCircuitBreakerClose();
     }
   }
@@ -309,45 +334,55 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
    */
   getComprehensiveStats(): PerformanceStats {
     const memoryInfo = this.memoryOptimizer.getDetailedMemoryInfo();
+    const memoryAnalysis = this.memoryOptimizer.analyzeMemoryUsage();
     const networkStats = {
       connectionPool: this.connectionPool.getPerformanceMetrics(),
       requestOptimizer: this.requestOptimizer.getDetailedStats(),
     };
     const registryMetrics = this.functionRegistry.getPerformanceMetrics();
-    
+
     // Calculate overall health
     let healthScore = 100;
-    const recommendations: string[] = [];
-    
+    const recommendations: string[] = [...memoryAnalysis.recommendations];
+
     // Memory health (30% weight)
     if (memoryInfo.current.heapUsed > this.optimizationThresholds.memoryUsage) {
       healthScore -= 30;
-      recommendations.push('Reduce memory usage');
+      recommendations.push("Reduce memory usage");
     }
-    
+
     // Cache performance (25% weight)
-    if (registryMetrics.cacheHitRate < this.optimizationThresholds.cacheHitRateThreshold) {
+    if (
+      registryMetrics.cacheHitRate <
+      this.optimizationThresholds.cacheHitRateThreshold
+    ) {
       healthScore -= 25;
-      recommendations.push('Improve cache efficiency');
+      recommendations.push("Improve cache efficiency");
     }
-    
+
     // Network performance (25% weight)
-    if (networkStats.connectionPool.errorRate > this.optimizationThresholds.errorRateThreshold) {
+    if (
+      networkStats.connectionPool.errorRate >
+      this.optimizationThresholds.errorRateThreshold
+    ) {
       healthScore -= 25;
-      recommendations.push('Improve network reliability');
+      recommendations.push("Improve network reliability");
     }
-    
+
     // Response time (20% weight)
-    if (networkStats.connectionPool.averageResponseTime > this.optimizationThresholds.responseTimeThreshold) {
+    if (
+      networkStats.connectionPool.averageResponseTime >
+      this.optimizationThresholds.responseTimeThreshold
+    ) {
       healthScore -= 20;
-      recommendations.push('Optimize response times');
+      recommendations.push("Optimize response times");
     }
-    
-    let overallHealth: 'excellent' | 'good' | 'warning' | 'critical';
-    if (healthScore >= 90) overallHealth = 'excellent';
-    else if (healthScore >= 70) overallHealth = 'good';
-    else if (healthScore >= 50) overallHealth = 'warning';
-    else overallHealth = 'critical';
+
+    let overallHealth: "excellent" | "good" | "warning" | "critical";
+    if (healthScore >= 90) overallHealth = "excellent";
+    else if (healthScore >= 70) overallHealth = "good";
+    else if (healthScore >= 50) overallHealth = "warning";
+    else overallHealth = "critical";
 
     return {
       memory: {
@@ -375,69 +410,97 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
    * Gets performance trends over time
    */
   getPerformanceTrends(): {
-    memoryTrend: 'increasing' | 'decreasing' | 'stable';
-    performanceTrend: 'improving' | 'degrading' | 'stable';
+    memoryTrend: "increasing" | "decreasing" | "stable";
+    performanceTrend: "improving" | "degrading" | "stable";
     recommendations: string[];
   } {
     if (this.performanceHistory.length < 5) {
       return {
-        memoryTrend: 'stable',
-        performanceTrend: 'stable',
-        recommendations: ['Insufficient data for trend analysis'],
+        memoryTrend: "stable",
+        performanceTrend: "stable",
+        recommendations: ["Insufficient data for trend analysis"],
       };
     }
 
     const recent = this.performanceHistory.slice(-5);
     const older = this.performanceHistory.slice(-10, -5);
-    
+
     // Memory trend analysis
-    const recentMemoryAvg = recent.reduce((sum, stat) => sum + stat.memory.current.heapUsed, 0) / recent.length;
-    const olderMemoryAvg = older.length > 0 ? older.reduce((sum, stat) => sum + stat.memory.current.heapUsed, 0) / older.length : recentMemoryAvg;
-    
-    let memoryTrend: 'increasing' | 'decreasing' | 'stable' = 'stable';
+    const recentMemoryAvg =
+      recent.reduce((sum, stat) => sum + stat.memory.current.heapUsed, 0) /
+      recent.length;
+    const olderMemoryAvg =
+      older.length > 0
+        ? older.reduce((sum, stat) => sum + stat.memory.current.heapUsed, 0) /
+          older.length
+        : recentMemoryAvg;
+
+    let memoryTrend: "increasing" | "decreasing" | "stable" = "stable";
     const memoryThreshold = recentMemoryAvg * 0.1; // 10% threshold
-    
+
     if (recentMemoryAvg > olderMemoryAvg + memoryThreshold) {
-      memoryTrend = 'increasing';
+      memoryTrend = "increasing";
     } else if (recentMemoryAvg < olderMemoryAvg - memoryThreshold) {
-      memoryTrend = 'decreasing';
+      memoryTrend = "decreasing";
     }
-    
+
     // Performance trend analysis (based on overall health scores)
-    const recentHealthAvg = recent.reduce((sum, stat) => {
-      return sum + (stat.system.overallHealth === 'excellent' ? 100 : 
-                    stat.system.overallHealth === 'good' ? 75 : 
-                    stat.system.overallHealth === 'warning' ? 50 : 25);
-    }, 0) / recent.length;
-    
-    const olderHealthAvg = older.length > 0 ? older.reduce((sum, stat) => {
-      return sum + (stat.system.overallHealth === 'excellent' ? 100 : 
-                    stat.system.overallHealth === 'good' ? 75 : 
-                    stat.system.overallHealth === 'warning' ? 50 : 25);
-    }, 0) / older.length : recentHealthAvg;
-    
-    let performanceTrend: 'improving' | 'degrading' | 'stable' = 'stable';
+    const recentHealthAvg =
+      recent.reduce((sum, stat) => {
+        return (
+          sum +
+          (stat.system.overallHealth === "excellent"
+            ? 100
+            : stat.system.overallHealth === "good"
+              ? 75
+              : stat.system.overallHealth === "warning"
+                ? 50
+                : 25)
+        );
+      }, 0) / recent.length;
+
+    const olderHealthAvg =
+      older.length > 0
+        ? older.reduce((sum, stat) => {
+            return (
+              sum +
+              (stat.system.overallHealth === "excellent"
+                ? 100
+                : stat.system.overallHealth === "good"
+                  ? 75
+                  : stat.system.overallHealth === "warning"
+                    ? 50
+                    : 25)
+            );
+          }, 0) / older.length
+        : recentHealthAvg;
+
+    let performanceTrend: "improving" | "degrading" | "stable" = "stable";
     const healthThreshold = 10; // 10 point threshold
-    
+
     if (recentHealthAvg > olderHealthAvg + healthThreshold) {
-      performanceTrend = 'improving';
+      performanceTrend = "improving";
     } else if (recentHealthAvg < olderHealthAvg - healthThreshold) {
-      performanceTrend = 'degrading';
+      performanceTrend = "degrading";
     }
-    
+
     // Generate recommendations based on trends
     const recommendations: string[] = [];
-    
-    if (memoryTrend === 'increasing') {
-      recommendations.push('Memory usage is increasing - consider memory optimization');
+
+    if (memoryTrend === "increasing") {
+      recommendations.push(
+        "Memory usage is increasing - consider memory optimization",
+      );
     }
-    
-    if (performanceTrend === 'degrading') {
-      recommendations.push('Performance is degrading - investigate recent changes');
+
+    if (performanceTrend === "degrading") {
+      recommendations.push(
+        "Performance is degrading - investigate recent changes",
+      );
     }
-    
-    if (memoryTrend === 'stable' && performanceTrend === 'stable') {
-      recommendations.push('System performance is stable');
+
+    if (memoryTrend === "stable" && performanceTrend === "stable") {
+      recommendations.push("System performance is stable");
     }
 
     return {
@@ -451,7 +514,7 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
    * Forces immediate optimization of all components
    */
   async forceOptimization(): Promise<void> {
-    this.logger.log('Forcing immediate system optimization');
+    this.logger.log("Forcing immediate system optimization");
     await this.performFullOptimization();
   }
 
@@ -464,8 +527,8 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
     this.connectionPool.resetStats();
     this.memoryOptimizer.clearAllCaches();
     this.startTime = Date.now();
-    
-    this.logger.log('Performance metrics reset');
+
+    this.logger.log("Performance metrics reset");
   }
 
   /**
@@ -473,31 +536,36 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
    */
   detectMemoryLeaks(): {
     potentialLeaks: boolean;
-    severity: 'none' | 'low' | 'medium' | 'high';
+    severity: "none" | "low" | "medium" | "high";
     recommendations: string[];
   } {
     const memoryInfo = this.memoryOptimizer.getDetailedMemoryInfo();
     const recommendations: string[] = [];
-    
+
     // Check if memory trend is increasing
-    const isIncreasing = memoryInfo.memoryTrend.trend === 'increasing';
-    const highMemoryUsage = memoryInfo.current.heapUsed > this.optimizationThresholds.memoryUsage;
-    
-    let severity: 'none' | 'low' | 'medium' | 'high' = 'none';
+    const isIncreasing = memoryInfo.memoryTrend.trend === "increasing";
+    const highMemoryUsage =
+      memoryInfo.current.heapUsed > this.optimizationThresholds.memoryUsage;
+
+    let severity: "none" | "low" | "medium" | "high" = "none";
     let potentialLeaks = false;
-    
+
     if (isIncreasing && highMemoryUsage) {
       potentialLeaks = true;
-      severity = 'high';
-      recommendations.push('Memory usage is increasing and high - potential memory leak detected');
-      recommendations.push('Review recent code changes for memory leaks');
-      recommendations.push('Consider profiling memory usage');
+      severity = "high";
+      recommendations.push(
+        "Memory usage is increasing and high - potential memory leak detected",
+      );
+      recommendations.push("Review recent code changes for memory leaks");
+      recommendations.push("Consider profiling memory usage");
     } else if (isIncreasing) {
       potentialLeaks = true;
-      severity = 'medium';
-      recommendations.push('Memory usage is increasing - monitor for potential leaks');
+      severity = "medium";
+      recommendations.push(
+        "Memory usage is increasing - monitor for potential leaks",
+      );
     }
-    
+
     return {
       potentialLeaks,
       severity,
@@ -508,9 +576,11 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
   /**
    * Updates optimization thresholds
    */
-  updateOptimizationThresholds(thresholds: Partial<typeof this.optimizationThresholds>): void {
+  updateOptimizationThresholds(
+    thresholds: Partial<typeof this.optimizationThresholds>,
+  ): void {
     Object.assign(this.optimizationThresholds, thresholds);
-    this.logger.log('Optimization thresholds updated');
+    this.logger.log("Optimization thresholds updated");
   }
 
   /**
@@ -541,65 +611,78 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
   getOptimizationSuggestions(): Array<{
     category: string;
     suggestion: string;
-    impact: 'low' | 'medium' | 'high';
-    priority: 'low' | 'medium' | 'high';
+    impact: "low" | "medium" | "high";
+    priority: "low" | "medium" | "high";
   }> {
     const suggestions: Array<{
       category: string;
       suggestion: string;
-      impact: 'low' | 'medium' | 'high';
-      priority: 'low' | 'medium' | 'high';
+      impact: "low" | "medium" | "high";
+      priority: "low" | "medium" | "high";
     }> = [];
 
     const stats = this.getComprehensiveStats();
 
     // Memory optimizations
-    if (stats.memory.current.heapUsed > this.optimizationThresholds.memoryUsage) {
+    if (
+      stats.memory.current.heapUsed > this.optimizationThresholds.memoryUsage
+    ) {
       suggestions.push({
-        category: 'memory',
-        suggestion: 'Consider implementing object pooling to reduce memory allocations',
-        impact: 'high',
-        priority: 'high'
+        category: "memory",
+        suggestion:
+          "Consider implementing object pooling to reduce memory allocations",
+        impact: "high",
+        priority: "high",
       });
     }
 
     // Cache optimizations
-    if (stats.registry.cacheHitRate < this.optimizationThresholds.cacheHitRateThreshold) {
+    if (
+      stats.registry.cacheHitRate <
+      this.optimizationThresholds.cacheHitRateThreshold
+    ) {
       suggestions.push({
-        category: 'cache',
-        suggestion: 'Improve cache hit rate by optimizing cache key strategies',
-        impact: 'medium',
-        priority: 'medium'
+        category: "cache",
+        suggestion: "Improve cache hit rate by optimizing cache key strategies",
+        impact: "medium",
+        priority: "medium",
       });
     }
 
     // Network optimizations
-    if (stats.network.connectionPool.errorRate > this.optimizationThresholds.errorRateThreshold) {
+    if (
+      stats.network.connectionPool.errorRate >
+      this.optimizationThresholds.errorRateThreshold
+    ) {
       suggestions.push({
-        category: 'network',
-        suggestion: 'Reduce network error rate by implementing better retry mechanisms',
-        impact: 'high',
-        priority: 'high'
+        category: "network",
+        suggestion:
+          "Reduce network error rate by implementing better retry mechanisms",
+        impact: "high",
+        priority: "high",
       });
     }
 
     // Response time optimizations
-    if (stats.network.connectionPool.averageResponseTime > this.optimizationThresholds.responseTimeThreshold) {
+    if (
+      stats.network.connectionPool.averageResponseTime >
+      this.optimizationThresholds.responseTimeThreshold
+    ) {
       suggestions.push({
-        category: 'performance',
-        suggestion: 'Optimize response times by implementing request batching',
-        impact: 'medium',
-        priority: 'medium'
+        category: "performance",
+        suggestion: "Optimize response times by implementing request batching",
+        impact: "medium",
+        priority: "medium",
       });
     }
 
     // Default suggestion if everything is optimal
     if (suggestions.length === 0) {
       suggestions.push({
-        category: 'general',
-        suggestion: 'System is performing optimally - continue monitoring',
-        impact: 'low',
-        priority: 'low'
+        category: "general",
+        suggestion: "System is performing optimally - continue monitoring",
+        impact: "low",
+        priority: "low",
       });
     }
 
@@ -610,16 +693,16 @@ export class PerformanceIntegrationService implements OnModuleInit, OnModuleDest
    * Module cleanup
    */
   async onModuleDestroy(): Promise<void> {
-    this.logger.log('Performance integration service shutting down...');
-    
+    this.logger.log("Performance integration service shutting down...");
+
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
     }
-    
+
     if (this.optimizationInterval) {
       clearInterval(this.optimizationInterval);
     }
-    
-    this.logger.log('Performance integration service shutdown completed');
+
+    this.logger.log("Performance integration service shutdown completed");
   }
 }

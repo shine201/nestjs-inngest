@@ -132,10 +132,10 @@ describe("InngestService", () => {
       const serviceWithoutEventKey = module.get<InngestService>(InngestService);
 
       await expect(serviceWithoutEventKey.send(validEvent)).rejects.toThrow(
-        InngestEventError
+        InngestEventError,
       );
       await expect(serviceWithoutEventKey.send(validEvent)).rejects.toThrow(
-        "Event key is required for sending events"
+        "Event key is required for sending events",
       );
     });
 
@@ -143,10 +143,10 @@ describe("InngestService", () => {
       const invalidEvent = { ...validEvent, name: "" };
 
       await expect(service.send(invalidEvent)).rejects.toThrow(
-        InngestEventError
+        InngestEventError,
       );
       await expect(service.send(invalidEvent)).rejects.toThrow(
-        /event\.name.*non-empty string/
+        /event\.name.*non-empty string/,
       );
     });
 
@@ -154,10 +154,10 @@ describe("InngestService", () => {
       const invalidEvent = { ...validEvent, data: null };
 
       await expect(service.send(invalidEvent)).rejects.toThrow(
-        InngestEventError
+        InngestEventError,
       );
       await expect(service.send(invalidEvent)).rejects.toThrow(
-        /event\.data.*required/i
+        /event\.data.*required/i,
       );
     });
 
@@ -165,10 +165,10 @@ describe("InngestService", () => {
       const invalidEvent = { ...validEvent, user: { id: "" } };
 
       await expect(service.send(invalidEvent)).rejects.toThrow(
-        InngestEventError
+        InngestEventError,
       );
       await expect(service.send(invalidEvent)).rejects.toThrow(
-        /user\.id.*non-empty string/
+        /user\.id.*non-empty string/,
       );
     });
 
@@ -176,10 +176,10 @@ describe("InngestService", () => {
       const invalidEvent = { ...validEvent, ts: -1 };
 
       await expect(service.send(invalidEvent)).rejects.toThrow(
-        InngestEventError
+        InngestEventError,
       );
       await expect(service.send(invalidEvent)).rejects.toThrow(
-        /event\.ts.*range/
+        /event\.ts.*range/,
       );
     });
 
@@ -189,7 +189,7 @@ describe("InngestService", () => {
 
       await expect(service.send(validEvent)).rejects.toThrow(InngestEventError);
       await expect(service.send(validEvent)).rejects.toThrow(
-        ERROR_MESSAGES.EVENT_SEND_FAILED
+        ERROR_MESSAGES.EVENT_SEND_FAILED,
       );
     });
   });
@@ -212,17 +212,17 @@ describe("InngestService", () => {
       const tooManyEvents = Array(101).fill(validEvents[0]);
 
       await expect(service.send(tooManyEvents)).rejects.toThrow(
-        InngestEventError
+        InngestEventError,
       );
       await expect(service.send(tooManyEvents)).rejects.toThrow(
-        "Batch size exceeds maximum allowed"
+        "Batch size exceeds maximum allowed",
       );
     });
 
     it("should validate empty batch", async () => {
       await expect(service.send([])).rejects.toThrow(InngestEventError);
       await expect(service.send([])).rejects.toThrow(
-        "At least one event must be provided"
+        "At least one event must be provided",
       );
     });
 
@@ -233,9 +233,11 @@ describe("InngestService", () => {
       ];
 
       await expect(service.send(invalidBatch)).rejects.toThrow(
-        InngestEventError
+        InngestEventError,
       );
-      await expect(service.send(invalidBatch)).rejects.toThrow(/validation error/);
+      await expect(service.send(invalidBatch)).rejects.toThrow(
+        /validation error/,
+      );
     });
   });
 
@@ -264,10 +266,10 @@ describe("InngestService", () => {
       };
 
       await expect(service.send(invalidEvent)).rejects.toThrow(
-        InngestEventError
+        InngestEventError,
       );
       await expect(service.send(invalidEvent)).rejects.toThrow(
-        "must be in kebab-case format"
+        "must be in kebab-case format",
       );
     });
 
@@ -291,11 +293,9 @@ describe("InngestService", () => {
       };
 
       await expect(service.send(invalidEvent)).rejects.toThrow(
-        InngestEventError
+        InngestEventError,
       );
-      await expect(service.send(invalidEvent)).rejects.toThrow(
-        /serializable/
-      );
+      await expect(service.send(invalidEvent)).rejects.toThrow(/serializable/);
     });
   });
 
@@ -381,11 +381,11 @@ describe("InngestService", () => {
       expect(mockInngestClient.send).toHaveBeenCalledTimes(2);
       expect(mockInngestClient.send).toHaveBeenNthCalledWith(
         1,
-        events.slice(0, 100)
+        events.slice(0, 100),
       );
       expect(mockInngestClient.send).toHaveBeenNthCalledWith(
         2,
-        events.slice(100, 150)
+        events.slice(100, 150),
       );
     });
 
@@ -396,7 +396,7 @@ describe("InngestService", () => {
       ];
 
       await expect(service.sendBatch(events)).rejects.toThrow(
-        InngestEventError
+        InngestEventError,
       );
       expect(mockInngestClient.send).not.toHaveBeenCalled();
     });
@@ -418,10 +418,10 @@ describe("InngestService", () => {
       const events = createEvents(5);
 
       await expect(serviceWithoutEventKey.sendBatch(events)).rejects.toThrow(
-        InngestEventError
+        InngestEventError,
       );
       await expect(serviceWithoutEventKey.sendBatch(events)).rejects.toThrow(
-        "Event key is required for sending events"
+        "Event key is required for sending events",
       );
     });
   });

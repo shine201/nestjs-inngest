@@ -158,9 +158,22 @@ describe("FunctionRegistry", () => {
 
       await registry.registerFunction(testService1, "handleEvent1", config);
 
-      await expect(
-        registry.registerFunction(testService2, "handleEvent2", config)
-      ).rejects.toThrow(ERROR_MESSAGES.DUPLICATE_FUNCTION_ID);
+      // Temporarily disable test environment override to test actual duplicate behavior
+      const originalNodeEnv = process.env.NODE_ENV;
+      const originalJestWorker = process.env.JEST_WORKER_ID;
+
+      delete process.env.NODE_ENV;
+      delete process.env.JEST_WORKER_ID;
+
+      try {
+        await expect(
+          registry.registerFunction(testService2, "handleEvent2", config),
+        ).rejects.toThrow(ERROR_MESSAGES.DUPLICATE_FUNCTION_ID);
+      } finally {
+        // Restore environment variables
+        if (originalNodeEnv) process.env.NODE_ENV = originalNodeEnv;
+        if (originalJestWorker) process.env.JEST_WORKER_ID = originalJestWorker;
+      }
     });
 
     it("should validate that method exists and is callable", async () => {
@@ -171,7 +184,7 @@ describe("FunctionRegistry", () => {
       };
 
       await expect(
-        registry.registerFunction(testService, "nonExistentMethod", config)
+        registry.registerFunction(testService, "nonExistentMethod", config),
       ).rejects.toThrow('Method "nonExistentMethod" is not a function');
     });
 
@@ -186,16 +199,31 @@ describe("FunctionRegistry", () => {
 
       const metadata = registry.getFunction("bound-function");
 
-      // Mock context for testing
+      // Mock context for testing (using type assertion to avoid complex mock setup)
       const mockContext = {
         event: { name: "test.event", data: {} },
         step: {
           run: jest.fn(),
           sleep: jest.fn(),
+          sleepUntil: jest.fn(),
           waitForEvent: jest.fn(),
           sendEvent: jest.fn(),
           invoke: jest.fn(),
-        },
+          waitForSignal: jest.fn(),
+          sendSignal: jest.fn(),
+          fetch: Object.assign(jest.fn(), { config: jest.fn() }),
+          ai: {
+            infer: jest.fn(),
+            wrap: jest.fn(),
+            models: {
+              anthropic: jest.fn(),
+              gemini: jest.fn(),
+              openai: jest.fn(),
+              deepseek: jest.fn(),
+              grok: jest.fn(),
+            },
+          },
+        } as any, // Type assertion to bypass complex StepTools interface
         logger: {
           info: jest.fn(),
           warn: jest.fn(),
@@ -206,7 +234,7 @@ describe("FunctionRegistry", () => {
         attempt: 1,
       };
 
-      const result = await metadata!.handler(mockContext);
+      const result = await metadata!.handler(mockContext.event, mockContext);
       expect(result).toBe("handled1");
     });
   });
@@ -238,7 +266,7 @@ describe("FunctionRegistry", () => {
           "test-function-1",
           "test-function-2",
           "test-function-3",
-        ])
+        ]),
       );
     });
 
@@ -257,7 +285,7 @@ describe("FunctionRegistry", () => {
       const functions = registry.getFunctionsByClass(TestService1);
       expect(functions).toHaveLength(2);
       expect(functions.map((f) => f.config.id)).toEqual(
-        expect.arrayContaining(["test-function-1", "test-function-2"])
+        expect.arrayContaining(["test-function-1", "test-function-2"]),
       );
     });
 
@@ -269,7 +297,7 @@ describe("FunctionRegistry", () => {
           "test-function-1",
           "test-function-2",
           "test-function-3",
-        ])
+        ]),
       );
     });
 
@@ -336,7 +364,7 @@ describe("FunctionRegistry", () => {
       metadata.handler = "not a function" as any;
 
       expect(() => registry.createInngestFunctions()).toThrow(
-        InngestFunctionError
+        InngestFunctionError,
       );
     });
   });

@@ -37,11 +37,11 @@ export class InngestService {
     new TypedEventBuilder();
 
   constructor(
-    @Inject(INNGEST_CONFIG) private readonly config: MergedInngestConfig
+    @Inject(INNGEST_CONFIG) private readonly config: MergedInngestConfig,
   ) {
     this.inngestClient = this.createInngestClient();
     this.logger.log(
-      `Inngest service initialized for app: ${this.config.appId}`
+      `Inngest service initialized for app: ${this.config.appId}`,
     );
   }
 
@@ -78,7 +78,7 @@ export class InngestService {
       throw new InngestEventError(
         "Failed to initialize Inngest client",
         undefined,
-        error as Error
+        error as Error,
       );
     }
   }
@@ -104,7 +104,7 @@ export class InngestService {
   async send(eventOrEvents: InngestEvent | InngestEventBatch): Promise<void> {
     if (!this.config.eventKey) {
       throw new InngestEventError(
-        "Event key is required for sending events. Please configure eventKey in your Inngest module."
+        "Event key is required for sending events. Please configure eventKey in your Inngest module.",
       );
     }
 
@@ -129,7 +129,7 @@ export class InngestService {
 
     if (events.length > this.config.maxBatchSize) {
       throw new InngestEventError(
-        `Batch size exceeds maximum allowed (${this.config.maxBatchSize}). Got ${events.length} events.`
+        `Batch size exceeds maximum allowed (${this.config.maxBatchSize}). Got ${events.length} events.`,
       );
     }
 
@@ -153,7 +153,7 @@ export class InngestService {
       EventValidator.validateEventNameFormat(
         event.name,
         reporter,
-        this.config.strict
+        this.config.strict,
       );
     }
 
@@ -171,7 +171,7 @@ export class InngestService {
     reporter.throwIfErrors(event?.name);
 
     this.logger.debug(
-      `Event${eventContext} passed all validation checks: ${event?.name}`
+      `Event${eventContext} passed all validation checks: ${event?.name}`,
     );
   }
 
@@ -180,10 +180,10 @@ export class InngestService {
    */
   private validateEventWithSchema(
     event: InngestEvent,
-    reporter: ValidationErrorReporter
+    reporter: ValidationErrorReporter,
   ): void {
     const schema = this.eventBuilder.getSchema(
-      event.name as string & keyof DefaultEventRegistry
+      event.name as string & keyof DefaultEventRegistry,
     );
     if (schema) {
       try {
@@ -193,7 +193,7 @@ export class InngestService {
             `Schema validation failed for event type: ${event.name}`,
             "SCHEMA_VALIDATION_FAILED",
             "valid data according to schema",
-            event.data
+            event.data,
           );
         } else {
           this.logger.debug(`Event passed schema validation: ${event.name}`);
@@ -206,7 +206,7 @@ export class InngestService {
           }`,
           "SCHEMA_VALIDATION_ERROR",
           "valid data according to schema",
-          event.data
+          event.data,
         );
       }
     }
@@ -226,7 +226,7 @@ export class InngestService {
       EventValidator.validateEventNameFormat(
         event.name,
         reporter,
-        this.config.strict
+        this.config.strict,
       );
     }
 
@@ -293,13 +293,13 @@ export class InngestService {
    */
   private async attemptSend(
     events: InngestEvent[],
-    options: RetryOptions
+    options: RetryOptions,
   ): Promise<void> {
     try {
       // Log the events being sent (in debug mode)
       if (this.config.logger) {
         this.logger.debug(
-          `Sending ${events.length} event(s) to Inngest (attempt ${options.attempt}/${options.maxAttempts})`
+          `Sending ${events.length} event(s) to Inngest (attempt ${options.attempt}/${options.maxAttempts})`,
         );
         events.forEach((event, index) => {
           this.logger.debug(`Event ${index + 1}: ${event.name}`, {
@@ -325,7 +325,7 @@ export class InngestService {
       ) {
         this.logger.warn(
           `Failed to send event(s) on attempt ${options.attempt}/${options.maxAttempts}: ${eventNames}. Retrying in ${options.delay}ms...`,
-          error
+          error,
         );
 
         // Wait before retrying
@@ -334,7 +334,7 @@ export class InngestService {
         // Calculate next delay with exponential backoff
         const nextDelay = Math.min(
           options.delay * (this.config.retry.backoffMultiplier || 2),
-          this.config.retry.maxDelay || 30000
+          this.config.retry.maxDelay || 30000,
         );
 
         // Retry with updated options
@@ -348,13 +348,13 @@ export class InngestService {
       // All retries exhausted or non-retryable error
       this.logger.error(
         `Failed to send event(s) after ${options.attempt} attempt(s): ${eventNames}`,
-        error
+        error,
       );
 
       throw new InngestEventError(
         ERROR_MESSAGES.EVENT_SEND_FAILED,
         eventNames,
-        error as Error
+        error as Error,
       );
     }
   }
@@ -402,7 +402,7 @@ export class InngestService {
   async sendBatch(events: InngestEvent[]): Promise<void> {
     if (!this.config.eventKey) {
       throw new InngestEventError(
-        "Event key is required for sending events. Please configure eventKey in your Inngest module."
+        "Event key is required for sending events. Please configure eventKey in your Inngest module.",
       );
     }
 
@@ -419,7 +419,7 @@ export class InngestService {
     const batches = this.createBatches(events, this.config.maxBatchSize);
 
     this.logger.debug(
-      `Sending ${events.length} events in ${batches.length} batch(es)`
+      `Sending ${events.length} events in ${batches.length} batch(es)`,
     );
 
     // Send all batches with controlled concurrency
@@ -428,7 +428,7 @@ export class InngestService {
     for (let i = 0; i < batches.length; i += concurrencyLimit) {
       const batchSlice = batches.slice(i, i + concurrencyLimit);
       const batchPromises = batchSlice.map((batch) =>
-        this.sendWithRetry(batch)
+        this.sendWithRetry(batch),
       );
 
       // Wait for this slice of batches to complete before starting the next
@@ -436,7 +436,7 @@ export class InngestService {
     }
 
     this.logger.log(
-      `Successfully sent all ${events.length} events in ${batches.length} batch(es)`
+      `Successfully sent all ${events.length} events in ${batches.length} batch(es)`,
     );
   }
 
@@ -445,7 +445,7 @@ export class InngestService {
    */
   private createBatches(
     events: InngestEvent[],
-    batchSize: number
+    batchSize: number,
   ): InngestEvent[][] {
     const batches: InngestEvent[][] = [];
 
@@ -461,7 +461,7 @@ export class InngestService {
    */
   registerEventSchema<T extends string & keyof DefaultEventRegistry>(
     eventName: T,
-    schema: EventSchemaRegistry<DefaultEventRegistry>[T]
+    schema: EventSchemaRegistry<DefaultEventRegistry>[T],
   ): void {
     if (schema) {
       this.eventBuilder.registerSchema(eventName, schema);
@@ -473,13 +473,13 @@ export class InngestService {
    * Register multiple event schemas
    */
   registerEventSchemas(
-    schemas: EventSchemaRegistry<DefaultEventRegistry>
+    schemas: EventSchemaRegistry<DefaultEventRegistry>,
   ): void {
     Object.entries(schemas).forEach(([eventName, schema]) => {
       if (schema) {
         this.registerEventSchema(
           eventName as string & keyof DefaultEventRegistry,
-          schema
+          schema,
         );
       }
     });
@@ -497,7 +497,7 @@ export class InngestService {
    */
   hasEventSchema(eventName: string): boolean {
     return !!this.eventBuilder.getSchema(
-      eventName as string & keyof DefaultEventRegistry
+      eventName as string & keyof DefaultEventRegistry,
     );
   }
 }

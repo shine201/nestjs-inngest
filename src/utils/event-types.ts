@@ -14,7 +14,7 @@ import {
  * Type-safe event builder
  */
 export class TypedEventBuilder<
-  TRegistry extends EventRegistry = DefaultEventRegistry
+  TRegistry extends EventRegistry = DefaultEventRegistry,
 > {
   private schemas: EventSchemaRegistry<TRegistry> = {};
 
@@ -23,7 +23,7 @@ export class TypedEventBuilder<
    */
   registerSchema<TName extends EventNames<TRegistry>>(
     eventName: TName,
-    schema: EventValidationSchema<EventDataType<TRegistry, TName>>
+    schema: EventValidationSchema<EventDataType<TRegistry, TName>>,
   ): this {
     this.schemas[eventName] = schema;
     return this;
@@ -33,7 +33,7 @@ export class TypedEventBuilder<
    * Create a type-safe event
    */
   createEvent<TName extends EventNames<TRegistry>>(
-    eventData: CreateEvent<TRegistry, TName>
+    eventData: CreateEvent<TRegistry, TName>,
   ): RegistryEvent<TRegistry, TName> {
     const { name, data, user, ts, id, v } = eventData;
 
@@ -64,7 +64,7 @@ export class TypedEventBuilder<
    * Validate an event against its schema
    */
   validateEvent<TName extends EventNames<TRegistry>>(
-    event: RegistryEvent<TRegistry, TName>
+    event: RegistryEvent<TRegistry, TName>,
   ): boolean {
     const schema = this.schemas[event.name];
     if (!schema) {
@@ -85,7 +85,7 @@ export class TypedEventBuilder<
    * Get schema for specific event
    */
   getSchema<TName extends EventNames<TRegistry>>(
-    eventName: TName
+    eventName: TName,
   ): EventValidationSchema<EventDataType<TRegistry, TName>> | undefined {
     return this.schemas[eventName];
   }
@@ -106,7 +106,7 @@ export class EventTypeInference {
    * Infer event type from event object
    */
   static inferEventType<T extends InngestEvent>(
-    event: T
+    event: T,
   ): {
     name: T["name"];
     dataType: T["data"];
@@ -122,10 +122,10 @@ export class EventTypeInference {
    */
   static isEventOfType<
     TRegistry extends EventRegistry,
-    TName extends EventNames<TRegistry>
+    TName extends EventNames<TRegistry>,
   >(
     event: InngestEvent,
-    expectedName: TName
+    expectedName: TName,
   ): event is RegistryEvent<TRegistry, TName> {
     return event.name === expectedName;
   }
@@ -134,7 +134,7 @@ export class EventTypeInference {
    * Extract event names from a list of events
    */
   static extractEventNames<T extends InngestEvent[]>(
-    events: T
+    events: T,
   ): Array<T[number]["name"]> {
     return events.map((event) => event.name);
   }
@@ -143,16 +143,19 @@ export class EventTypeInference {
    * Group events by name
    */
   static groupEventsByName<T extends InngestEvent>(
-    events: T[]
+    events: T[],
   ): Record<string, T[]> {
-    return events.reduce((groups, event) => {
-      const name = event.name;
-      if (!groups[name]) {
-        groups[name] = [];
-      }
-      groups[name].push(event);
-      return groups;
-    }, {} as Record<string, T[]>);
+    return events.reduce(
+      (groups, event) => {
+        const name = event.name;
+        if (!groups[name]) {
+          groups[name] = [];
+        }
+        groups[name].push(event);
+        return groups;
+      },
+      {} as Record<string, T[]>,
+    );
   }
 }
 
@@ -200,7 +203,7 @@ export class EventPatternMatcher {
    */
   filterEventsByPattern<T extends InngestEvent>(
     events: T[],
-    patternName: string
+    patternName: string,
   ): T[] {
     const pattern = this.patterns.get(patternName);
     if (!pattern) {
@@ -229,7 +232,7 @@ export const EventUtils = {
    */
   createSimpleEvent<TName extends string, TData = any>(
     name: TName,
-    data: TData
+    data: TData,
   ): InngestEvent<TData> & { name: TName } {
     return {
       name,
@@ -258,7 +261,7 @@ export const EventUtils = {
    */
   mergeEventData<T extends InngestEvent>(
     event: T,
-    additionalData: Partial<T["data"]>
+    additionalData: Partial<T["data"]>,
   ): T {
     return {
       ...event,
@@ -293,6 +296,52 @@ export type CreateEventRegistry<T extends Record<string, any>> = T;
  */
 export type ExtendDefaultRegistry<T extends EventRegistry> =
   DefaultEventRegistry & T;
+
+/**
+ * Event types namespace for common event operations
+ */
+export const EventTypes = {
+  /**
+   * User events
+   */
+  USER_CREATED: "user.created" as const,
+  USER_UPDATED: "user.updated" as const,
+  USER_DELETED: "user.deleted" as const,
+  USER_VERIFIED: "user.verified" as const,
+
+  /**
+   * Order events
+   */
+  ORDER_CREATED: "order.created" as const,
+  ORDER_UPDATED: "order.updated" as const,
+  ORDER_CANCELLED: "order.cancelled" as const,
+  ORDER_COMPLETED: "order.completed" as const,
+
+  /**
+   * Payment events
+   */
+  PAYMENT_INITIATED: "payment.initiated" as const,
+  PAYMENT_COMPLETED: "payment.completed" as const,
+  PAYMENT_FAILED: "payment.failed" as const,
+
+  /**
+   * Inventory events
+   */
+  INVENTORY_UPDATED: "inventory.updated" as const,
+  INVENTORY_LOW_STOCK: "inventory.low.stock" as const,
+
+  /**
+   * Notification events
+   */
+  NOTIFICATION_SENT: "notification.sent" as const,
+  NOTIFICATION_DELIVERED: "notification.delivered" as const,
+
+  /**
+   * Analytics events
+   */
+  ANALYTICS_TRACKED: "analytics.tracked" as const,
+  ANALYTICS_AGGREGATED: "analytics.aggregated" as const,
+};
 
 // Re-export types for convenience
 export type {

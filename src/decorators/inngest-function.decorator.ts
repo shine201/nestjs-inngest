@@ -1,4 +1,5 @@
-import { SetMetadata } from "@nestjs/common";
+import "reflect-metadata";
+
 import { InngestFunctionConfig } from "../interfaces/inngest-function.interface";
 import { InngestFunctionError } from "../errors";
 import { METADATA_KEYS, ERROR_MESSAGES } from "../constants";
@@ -11,7 +12,7 @@ function validateFunctionConfig(config: InngestFunctionConfig): void {
   if (!config.id || typeof config.id !== "string" || config.id.trim() === "") {
     throw new InngestFunctionError(
       ERROR_MESSAGES.INVALID_FUNCTION_ID,
-      config.id
+      config.id,
     );
   }
 
@@ -20,7 +21,7 @@ function validateFunctionConfig(config: InngestFunctionConfig): void {
   if (!functionIdPattern.test(config.id)) {
     throw new InngestFunctionError(
       'Function ID must be in kebab-case format (e.g., "user-created", "order-completed")',
-      config.id
+      config.id,
     );
   }
 
@@ -38,7 +39,7 @@ function validateFunctionConfig(config: InngestFunctionConfig): void {
     if (!trigger || typeof trigger !== "object") {
       throw new InngestFunctionError(
         `Trigger at index ${index} must be a valid object`,
-        config.id
+        config.id,
       );
     }
 
@@ -51,7 +52,7 @@ function validateFunctionConfig(config: InngestFunctionConfig): void {
       ) {
         throw new InngestFunctionError(
           `Event trigger at index ${index} must have a valid event name`,
-          config.id
+          config.id,
         );
       }
 
@@ -60,7 +61,7 @@ function validateFunctionConfig(config: InngestFunctionConfig): void {
       if (!eventNamePattern.test(trigger.event)) {
         throw new InngestFunctionError(
           `Event name "${trigger.event}" must be in kebab-case format with dots (e.g., "user.created")`,
-          config.id
+          config.id,
         );
       }
 
@@ -71,7 +72,7 @@ function validateFunctionConfig(config: InngestFunctionConfig): void {
       ) {
         throw new InngestFunctionError(
           `Event trigger condition at index ${index} must be a non-empty string`,
-          config.id
+          config.id,
         );
       }
     }
@@ -84,7 +85,7 @@ function validateFunctionConfig(config: InngestFunctionConfig): void {
       ) {
         throw new InngestFunctionError(
           `Cron trigger at index ${index} must have a valid cron expression`,
-          config.id
+          config.id,
         );
       }
 
@@ -93,13 +94,13 @@ function validateFunctionConfig(config: InngestFunctionConfig): void {
       if (cronParts.length < 5 || cronParts.length > 6) {
         throw new InngestFunctionError(
           `Invalid cron expression "${trigger.cron}". Must have 5 or 6 parts.`,
-          config.id
+          config.id,
         );
       }
     } else {
       throw new InngestFunctionError(
         `Trigger at index ${index} must be either an event trigger or cron trigger`,
-        config.id
+        config.id,
       );
     }
   });
@@ -111,7 +112,7 @@ function validateFunctionConfig(config: InngestFunctionConfig): void {
   ) {
     throw new InngestFunctionError(
       "Function name must be a non-empty string if provided",
-      config.id
+      config.id,
     );
   }
 
@@ -121,7 +122,7 @@ function validateFunctionConfig(config: InngestFunctionConfig): void {
       if (config.concurrency < 1 || config.concurrency > 1000) {
         throw new InngestFunctionError(
           "Concurrency limit must be between 1 and 1000",
-          config.id
+          config.id,
         );
       }
     } else if (
@@ -131,19 +132,19 @@ function validateFunctionConfig(config: InngestFunctionConfig): void {
       if (typeof config.concurrency.limit !== "number") {
         throw new InngestFunctionError(
           "Concurrency configuration must have a valid limit",
-          config.id
+          config.id,
         );
       }
       if (config.concurrency.limit < 1 || config.concurrency.limit > 1000) {
         throw new InngestFunctionError(
           "Concurrency limit must be between 1 and 1000",
-          config.id
+          config.id,
         );
       }
     } else {
       throw new InngestFunctionError(
         "Concurrency must be a number or concurrency configuration object",
-        config.id
+        config.id,
       );
     }
   }
@@ -157,7 +158,7 @@ function validateFunctionConfig(config: InngestFunctionConfig): void {
     ) {
       throw new InngestFunctionError(
         "Rate limit must have a valid limit greater than 0",
-        config.id
+        config.id,
       );
     }
     if (
@@ -166,7 +167,7 @@ function validateFunctionConfig(config: InngestFunctionConfig): void {
     ) {
       throw new InngestFunctionError(
         'Rate limit must have a valid period string (e.g., "1m", "1h")',
-        config.id
+        config.id,
       );
     }
   }
@@ -180,7 +181,7 @@ function validateFunctionConfig(config: InngestFunctionConfig): void {
     ) {
       throw new InngestFunctionError(
         "Retries must be a number between 0 and 10",
-        config.id
+        config.id,
       );
     }
   }
@@ -194,7 +195,7 @@ function validateFunctionConfig(config: InngestFunctionConfig): void {
     ) {
       throw new InngestFunctionError(
         "Timeout must be a number between 1000ms (1s) and 300000ms (5m)",
-        config.id
+        config.id,
       );
     }
   }
@@ -204,7 +205,7 @@ function validateFunctionConfig(config: InngestFunctionConfig): void {
  * Normalizes the function configuration with defaults
  */
 function normalizeFunctionConfig(
-  config: InngestFunctionConfig
+  config: InngestFunctionConfig,
 ): InngestFunctionConfig {
   return {
     ...config,
@@ -238,12 +239,12 @@ function normalizeFunctionConfig(
  * ```
  */
 export function InngestFunction(
-  config: InngestFunctionConfig
+  config: InngestFunctionConfig,
 ): MethodDecorator {
   return (
     target: any,
     propertyKey: string | symbol,
-    descriptor: PropertyDescriptor
+    descriptor: PropertyDescriptor,
   ) => {
     try {
       // Validate the configuration
@@ -264,12 +265,12 @@ export function InngestFunction(
 
       // Check for duplicate function IDs on the same class
       const duplicateFunction = existingMetadata.find(
-        (meta: any) => meta.config.id === normalizedConfig.id
+        (meta: any) => meta.config.id === normalizedConfig.id,
       );
       if (duplicateFunction) {
         throw new InngestFunctionError(
           ERROR_MESSAGES.DUPLICATE_FUNCTION_ID,
-          normalizedConfig.id
+          normalizedConfig.id,
         );
       }
 
@@ -278,14 +279,15 @@ export function InngestFunction(
       Reflect.defineMetadata(
         METADATA_KEYS.INNGEST_FUNCTION,
         existingMetadata,
-        target
+        target,
       );
 
       // Also set metadata on the method itself for easier access
-      SetMetadata(METADATA_KEYS.INNGEST_FUNCTION, normalizedConfig)(
+      Reflect.defineMetadata(
+        METADATA_KEYS.INNGEST_FUNCTION,
+        normalizedConfig,
         target,
         propertyKey,
-        descriptor
       );
     } catch (error) {
       if (error instanceof InngestFunctionError) {
@@ -296,7 +298,7 @@ export function InngestFunction(
       throw new InngestFunctionError(
         `Failed to register Inngest function: ${errorMessage}`,
         config.id,
-        error as Error
+        error as Error,
       );
     }
   };
@@ -322,11 +324,11 @@ export function isInngestFunction(target: any, propertyKey: string): boolean {
  */
 export function getFunctionConfig(
   target: any,
-  propertyKey: string
+  propertyKey: string,
 ): InngestFunctionConfig | undefined {
   const metadata = getInngestFunctionMetadata(target);
   const functionMeta = metadata.find(
-    (meta) => meta.propertyKey === propertyKey
+    (meta) => meta.propertyKey === propertyKey,
   );
   return functionMeta?.config;
 }

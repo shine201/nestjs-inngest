@@ -8,7 +8,10 @@
 export abstract class InngestError extends Error {
   abstract readonly code: string;
 
-  constructor(message: string, public readonly context?: Record<string, any>) {
+  constructor(
+    message: string,
+    public readonly context?: Record<string, any>,
+  ) {
     super(message);
     this.name = this.constructor.name;
   }
@@ -23,7 +26,7 @@ export class InngestConfigError extends InngestError {
   constructor(
     message: string,
     public readonly field?: string,
-    public readonly value?: any
+    public readonly value?: any,
   ) {
     super(message, { field, value });
   }
@@ -38,7 +41,7 @@ export class InngestFunctionError extends InngestError {
   constructor(
     message: string,
     public readonly functionId?: string,
-    public readonly originalError?: Error
+    public readonly originalError?: Error,
   ) {
     super(message, { functionId, originalError });
   }
@@ -54,12 +57,12 @@ export class InngestEventError extends InngestError {
     message: string,
     public readonly eventName?: string,
     public readonly originalError?: Error,
-    additionalContext?: Record<string, any>
+    additionalContext?: Record<string, any>,
   ) {
-    super(message, { 
-      eventName, 
-      originalError, 
-      ...additionalContext 
+    super(message, {
+      eventName,
+      originalError,
+      ...additionalContext,
     });
   }
 }
@@ -73,7 +76,7 @@ export class InngestWebhookError extends InngestError {
   constructor(
     message: string,
     public readonly statusCode?: number,
-    public readonly originalError?: Error
+    public readonly originalError?: Error,
   ) {
     super(message, { statusCode, originalError });
   }
@@ -89,7 +92,7 @@ export class InngestRuntimeError extends InngestError {
     message: string,
     public readonly functionId?: string,
     public readonly runId?: string,
-    public readonly originalError?: Error
+    public readonly originalError?: Error,
   ) {
     super(message, { functionId, runId, originalError });
   }
@@ -105,7 +108,7 @@ export class InngestTimeoutError extends InngestError {
     message: string,
     public readonly functionId?: string,
     public readonly runId?: string,
-    public readonly timeout?: number
+    public readonly timeout?: number,
   ) {
     super(message, { functionId, runId, timeout });
   }
@@ -122,7 +125,7 @@ export class InngestRetryError extends InngestError {
     public readonly functionId?: string,
     public readonly runId?: string,
     public readonly attempts?: number,
-    public readonly lastError?: Error
+    public readonly lastError?: Error,
   ) {
     super(message, { functionId, runId, attempts, lastError });
   }
@@ -138,7 +141,7 @@ export class InngestScopeError extends InngestError {
     message: string,
     public readonly providerId?: string,
     public readonly scope?: string,
-    public readonly originalError?: Error
+    public readonly originalError?: Error,
   ) {
     super(message, { providerId, scope, originalError });
   }
@@ -156,7 +159,7 @@ export class InngestStepError extends InngestError {
     public readonly stepType?: string,
     public readonly functionId?: string,
     public readonly runId?: string,
-    public readonly originalError?: Error
+    public readonly originalError?: Error,
   ) {
     super(message, { stepId, stepType, functionId, runId, originalError });
   }
@@ -175,7 +178,7 @@ export class InngestValidationError extends InngestError {
       message: string;
       code: string;
     }>,
-    public readonly functionId?: string
+    public readonly functionId?: string,
   ) {
     super(message, { validationErrors, functionId });
   }
@@ -191,7 +194,7 @@ export class InngestServiceError extends InngestError {
     message: string,
     public readonly service?: string,
     public readonly statusCode?: number,
-    public readonly originalError?: Error
+    public readonly originalError?: Error,
   ) {
     super(message, { service, statusCode, originalError });
   }

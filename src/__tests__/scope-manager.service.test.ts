@@ -63,7 +63,7 @@ describe("ScopeManagerService", () => {
       expect(contextId).toBeDefined();
       expect(moduleRef.registerRequestByContextId).toHaveBeenCalledWith(
         requestContext,
-        contextId
+        contextId,
       );
     });
 
@@ -81,7 +81,7 @@ describe("ScopeManagerService", () => {
       });
 
       expect(() => service.createExecutionScope(requestContext)).toThrow(
-        "Registration failed"
+        "Registration failed",
       );
     });
 
@@ -130,21 +130,21 @@ describe("ScopeManagerService", () => {
       expect(moduleRef.resolve).toHaveBeenCalledWith(
         MockScopedService,
         contextId,
-        { strict: false }
+        { strict: false },
       );
     });
 
     it("should fallback to singleton when scoped resolution fails", async () => {
       const mockService = new MockSingletonService();
       moduleRef.resolve.mockRejectedValue(
-        new Error("Scoped resolution failed")
+        new Error("Scoped resolution failed"),
       );
       moduleRef.get.mockReturnValue(mockService);
 
       const result = await service.resolveScoped(
         MockSingletonService,
         contextId,
-        { fallbackToSingleton: true }
+        { fallbackToSingleton: true },
       );
 
       expect(result).toBe(mockService);
@@ -156,13 +156,13 @@ describe("ScopeManagerService", () => {
 
     it("should not fallback when fallbackToSingleton is false", async () => {
       moduleRef.resolve.mockRejectedValue(
-        new Error("Scoped resolution failed")
+        new Error("Scoped resolution failed"),
       );
 
       await expect(
         service.resolveScoped(MockScopedService, contextId, {
           fallbackToSingleton: false,
-        })
+        }),
       ).rejects.toThrow("Scoped resolution failed");
 
       expect(moduleRef.get).not.toHaveBeenCalled();
@@ -170,14 +170,14 @@ describe("ScopeManagerService", () => {
 
     it("should handle fallback errors", async () => {
       moduleRef.resolve.mockRejectedValue(
-        new Error("Scoped resolution failed")
+        new Error("Scoped resolution failed"),
       );
       moduleRef.get.mockImplementation(() => {
         throw new Error("Singleton resolution failed");
       });
 
       await expect(
-        service.resolveScoped(MockScopedService, contextId)
+        service.resolveScoped(MockScopedService, contextId),
       ).rejects.toThrow("Singleton resolution failed");
     });
 
@@ -192,7 +192,7 @@ describe("ScopeManagerService", () => {
       expect(moduleRef.resolve).toHaveBeenCalledWith(
         MockScopedService,
         contextId,
-        { strict: true }
+        { strict: true },
       );
     });
   });

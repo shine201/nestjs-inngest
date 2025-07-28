@@ -71,7 +71,7 @@ describe("InngestModule", () => {
       const dynamicModule = InngestModule.forRoot(validConfig);
 
       const configProvider = dynamicModule.providers?.find(
-        (provider: any) => provider.provide === INNGEST_CONFIG
+        (provider: any) => provider.provide === INNGEST_CONFIG,
       ) as any;
 
       expect(configProvider).toBeDefined();
@@ -90,7 +90,7 @@ describe("InngestModule", () => {
       const dynamicModule = InngestModule.forRoot(minimalConfig);
 
       const configProvider = dynamicModule.providers?.find(
-        (provider: any) => provider.provide === INNGEST_CONFIG
+        (provider: any) => provider.provide === INNGEST_CONFIG,
       ) as any;
 
       expect(configProvider.useValue.isDev).toBe(false);
@@ -165,7 +165,7 @@ describe("InngestModule", () => {
       });
 
       const configProvider = dynamicModule.providers?.find(
-        (provider: any) => provider.provide === INNGEST_CONFIG
+        (provider: any) => provider.provide === INNGEST_CONFIG,
       ) as any;
 
       expect(configProvider).toBeDefined();
@@ -185,7 +185,7 @@ describe("InngestModule", () => {
 
       const providers = dynamicModule.providers || [];
       const hasConfigService = providers.some(
-        (provider: any) => provider.provide === ConfigService
+        (provider: any) => provider.provide === ConfigService,
       );
 
       expect(hasConfigService).toBe(true);

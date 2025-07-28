@@ -8,7 +8,7 @@ export {
   InngestTestingConfig,
   createInngestTestingModule,
   InngestTestUtils,
-} from './inngest-testing.module';
+} from "./inngest-testing.module";
 
 // Mock services
 export {
@@ -19,7 +19,7 @@ export {
   MockSignatureVerificationService,
   createMockProviders,
   MockFactory,
-} from './mocks';
+} from "./mocks";
 
 // Re-export commonly used testing types from NestJS
-export { Test, TestingModule, TestingModuleBuilder } from '@nestjs/testing';
+export { Test, TestingModule, TestingModuleBuilder } from "@nestjs/testing";

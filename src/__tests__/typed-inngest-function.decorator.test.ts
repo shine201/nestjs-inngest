@@ -43,7 +43,7 @@ describe("TypedInngestFunction Decorator", () => {
           triggers: [{ event: "user.created" }],
         })
         async handleUserCreated(
-          context: TypedEventContext<TestEventRegistry, "user.created">
+          context: TypedEventContext<TestEventRegistry, "user.created">,
         ) {
           return `User ${context.event.data.userId} created`;
         }
@@ -52,13 +52,13 @@ describe("TypedInngestFunction Decorator", () => {
       const metadata = Reflect.getMetadata(
         METADATA_KEYS.INNGEST_FUNCTION,
         TestService.prototype,
-        "handleUserCreated"
+        "handleUserCreated",
       );
 
       expect(metadata).toBeDefined();
-      expect(metadata.id).toBe("handle-user-created");
-      expect(metadata.name).toBe("Handle User Created");
-      expect(metadata.triggers).toEqual([{ event: "user.created" }]);
+      expect(metadata.config.id).toBe("handle-user-created");
+      expect(metadata.config.name).toBe("Handle User Created");
+      expect(metadata.config.triggers).toEqual([{ event: "user.created" }]);
       expect(metadata.target).toBe(TestService.prototype);
       expect(metadata.propertyKey).toBe("handleUserCreated");
       expect(typeof metadata.handler).toBe("function");
@@ -79,12 +79,12 @@ describe("TypedInngestFunction Decorator", () => {
       const metadata = Reflect.getMetadata(
         METADATA_KEYS.INNGEST_FUNCTION,
         TestService.prototype,
-        "handleUserEvents"
+        "handleUserEvents",
       );
 
-      expect(metadata.triggers).toHaveLength(2);
-      expect(metadata.triggers[0].event).toBe("user.created");
-      expect(metadata.triggers[1].event).toBe("user.updated");
+      expect(metadata.config.triggers).toHaveLength(2);
+      expect(metadata.config.triggers[0].event).toBe("user.created");
+      expect(metadata.config.triggers[1].event).toBe("user.updated");
     });
 
     it("should work with cron triggers", () => {
@@ -102,11 +102,11 @@ describe("TypedInngestFunction Decorator", () => {
       const metadata = Reflect.getMetadata(
         METADATA_KEYS.INNGEST_FUNCTION,
         TestService.prototype,
-        "dailyCleanup"
+        "dailyCleanup",
       );
 
-      expect(metadata.triggers[0].cron).toBe("0 0 * * *");
-      expect(metadata.triggers[0].timezone).toBe("UTC");
+      expect(metadata.config.triggers[0].cron).toBe("0 0 * * *");
+      expect(metadata.config.triggers[0].timezone).toBe("UTC");
     });
 
     it("should work with function configuration options", () => {
@@ -135,7 +135,7 @@ describe("TypedInngestFunction Decorator", () => {
           },
         })
         async handleUserCreated(
-          context: TypedEventContext<TestEventRegistry, "user.created">
+          context: TypedEventContext<TestEventRegistry, "user.created">,
         ) {
           return "Handled";
         }
@@ -144,15 +144,15 @@ describe("TypedInngestFunction Decorator", () => {
       const metadata = Reflect.getMetadata(
         METADATA_KEYS.INNGEST_FUNCTION,
         TestService.prototype,
-        "handleUserCreated"
+        "handleUserCreated",
       );
 
-      expect(metadata.config.retries).toBe(3);
-      expect(metadata.config.timeout).toBe(30000);
-      expect(metadata.config.priority).toBe(1);
-      expect(metadata.config.rateLimit.limit).toBe(10);
-      expect(metadata.config.concurrency.limit).toBe(5);
-      expect(metadata.config.batchEvents.maxSize).toBe(100);
+      expect(metadata.config.config.retries).toBe(3);
+      expect(metadata.config.config.timeout).toBe(30000);
+      expect(metadata.config.config.priority).toBe(1);
+      expect(metadata.config.config.rateLimit.limit).toBe(10);
+      expect(metadata.config.config.concurrency.limit).toBe(5);
+      expect(metadata.config.config.batchEvents.maxSize).toBe(100);
     });
   });
 
@@ -371,7 +371,7 @@ describe("TypedInngestFunction Decorator", () => {
           name: "Handle User Created",
         })
         async handleUserCreated(
-          context: TypedEventContext<TestEventRegistry, "user.created">
+          context: TypedEventContext<TestEventRegistry, "user.created">,
         ) {
           return `User ${context.event.data.userId} created`;
         }
@@ -380,10 +380,10 @@ describe("TypedInngestFunction Decorator", () => {
       const metadata = Reflect.getMetadata(
         METADATA_KEYS.INNGEST_FUNCTION,
         TestService.prototype,
-        "handleUserCreated"
+        "handleUserCreated",
       );
 
-      expect(metadata.triggers).toEqual([{ event: "user.created" }]);
+      expect(metadata.config.triggers).toEqual([{ event: "user.created" }]);
     });
 
     it("should allow custom triggers in event-specific decorator", () => {
@@ -406,10 +406,10 @@ describe("TypedInngestFunction Decorator", () => {
       const metadata = Reflect.getMetadata(
         METADATA_KEYS.INNGEST_FUNCTION,
         TestService.prototype,
-        "handleUserEvents"
+        "handleUserEvents",
       );
 
-      expect(metadata.triggers).toHaveLength(2);
+      expect(metadata.config.triggers).toHaveLength(2);
     });
   });
 
@@ -431,12 +431,12 @@ describe("TypedInngestFunction Decorator", () => {
       const metadata = Reflect.getMetadata(
         METADATA_KEYS.INNGEST_FUNCTION,
         TestService.prototype,
-        "dailyCleanup"
+        "dailyCleanup",
       );
 
-      expect(metadata.id).toBe("daily-cleanup");
-      expect(metadata.name).toBe("Daily Cleanup");
-      expect(metadata.triggers).toEqual([
+      expect(metadata.config.id).toBe("daily-cleanup");
+      expect(metadata.config.name).toBe("Daily Cleanup");
+      expect(metadata.config.triggers).toEqual([
         {
           cron: "0 0 * * *",
           timezone: "UTC",
@@ -459,11 +459,11 @@ describe("TypedInngestFunction Decorator", () => {
       const metadata = Reflect.getMetadata(
         METADATA_KEYS.INNGEST_FUNCTION,
         TestService.prototype,
-        "hourlyTask"
+        "hourlyTask",
       );
 
-      expect(metadata.triggers[0].cron).toBe("0 * * * *");
-      expect(metadata.triggers[0].timezone).toBeUndefined();
+      expect(metadata.config.triggers[0].cron).toBe("0 * * * *");
+      expect(metadata.config.triggers[0].timezone).toBeUndefined();
     });
   });
 
@@ -477,7 +477,7 @@ describe("TypedInngestFunction Decorator", () => {
           triggers: [{ event: "user.created" }],
         })
         async handleUserCreated(
-          context: TypedEventContext<TestEventRegistry, "user.created">
+          context: TypedEventContext<TestEventRegistry, "user.created">,
         ) {
           // TypeScript should enforce that context.event.data has the correct type
           const userId: string = context.event.data.userId;

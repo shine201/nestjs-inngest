@@ -179,15 +179,15 @@ export class EnhancedLogger implements LoggerService {
     functionId: string,
     runId: string,
     attempt: number,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ): void {
     this.log(`Function ${functionId} execution started`, {
       ...context,
       functionId,
       runId,
       attempt,
-      phase: 'start',
-      tags: ['function-execution', 'start'],
+      phase: "start",
+      tags: ["function-execution", "start"],
     });
   }
 
@@ -200,7 +200,7 @@ export class EnhancedLogger implements LoggerService {
     attempt: number,
     duration: number,
     result?: any,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ): void {
     this.log(`Function ${functionId} executed successfully`, {
       ...context,
@@ -208,9 +208,9 @@ export class EnhancedLogger implements LoggerService {
       runId,
       attempt,
       duration,
-      phase: 'success',
-      resultType: result ? typeof result : 'void',
-      tags: ['function-execution', 'success'],
+      phase: "success",
+      resultType: result ? typeof result : "void",
+      tags: ["function-execution", "success"],
     });
   }
 
@@ -223,19 +223,23 @@ export class EnhancedLogger implements LoggerService {
     attempt: number,
     duration: number,
     error: Error | InngestError,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ): void {
-    this.error(`Function ${functionId} execution failed`, {
-      ...context,
-      functionId,
-      runId,
-      attempt,
-      duration,
-      phase: 'error',
-      errorCode: error instanceof InngestError ? error.code : 'UNKNOWN',
-      errorType: error.constructor.name,
-      tags: ['function-execution', 'error'],
-    }, error);
+    this.error(
+      `Function ${functionId} execution failed`,
+      {
+        ...context,
+        functionId,
+        runId,
+        attempt,
+        duration,
+        phase: "error",
+        errorCode: error instanceof InngestError ? error.code : "UNKNOWN",
+        errorType: error.constructor.name,
+        tags: ["function-execution", "error"],
+      },
+      error,
+    );
   }
 
   /**
@@ -246,11 +250,11 @@ export class EnhancedLogger implements LoggerService {
     stepType: string,
     functionId: string,
     runId: string,
-    status: 'start' | 'success' | 'error',
+    status: "start" | "success" | "error",
     context?: Record<string, any>,
-    error?: Error
+    error?: Error,
   ): void {
-    const level = status === 'error' ? LogLevel.ERROR : LogLevel.LOG;
+    const level = status === "error" ? LogLevel.ERROR : LogLevel.LOG;
     const message = `Step ${stepId} (${stepType}) ${status}`;
 
     this.logStructured({
@@ -263,7 +267,7 @@ export class EnhancedLogger implements LoggerService {
         functionId,
         runId,
         stepStatus: status,
-        tags: ['step-execution', status],
+        tags: ["step-execution", status],
       },
       error,
       timestamp: new Date(),
@@ -279,11 +283,11 @@ export class EnhancedLogger implements LoggerService {
   logEvent(
     eventName: string,
     eventId: string,
-    action: 'received' | 'validated' | 'processed' | 'failed',
+    action: "received" | "validated" | "processed" | "failed",
     context?: Record<string, any>,
-    error?: Error
+    error?: Error,
   ): void {
-    const level = action === 'failed' ? LogLevel.ERROR : LogLevel.LOG;
+    const level = action === "failed" ? LogLevel.ERROR : LogLevel.LOG;
     const message = `Event ${eventName} ${action}`;
 
     this.logStructured({
@@ -294,7 +298,7 @@ export class EnhancedLogger implements LoggerService {
         eventName,
         eventId,
         eventAction: action,
-        tags: ['event-processing', action],
+        tags: ["event-processing", action],
       },
       error,
       timestamp: new Date(),
@@ -308,12 +312,12 @@ export class EnhancedLogger implements LoggerService {
   logWebhook(
     method: string,
     functionId: string,
-    status: 'received' | 'processed' | 'failed',
+    status: "received" | "processed" | "failed",
     statusCode?: number,
     context?: Record<string, any>,
-    error?: Error
+    error?: Error,
   ): void {
-    const level = status === 'failed' ? LogLevel.ERROR : LogLevel.LOG;
+    const level = status === "failed" ? LogLevel.ERROR : LogLevel.LOG;
     const message = `Webhook ${method} for ${functionId} ${status}`;
 
     this.logStructured({
@@ -325,7 +329,7 @@ export class EnhancedLogger implements LoggerService {
         functionId,
         webhookStatus: status,
         statusCode,
-        tags: ['webhook', status],
+        tags: ["webhook", status],
       },
       error,
       timestamp: new Date(),
@@ -338,11 +342,11 @@ export class EnhancedLogger implements LoggerService {
    * Log configuration events
    */
   logConfig(
-    action: 'loaded' | 'validated' | 'error',
+    action: "loaded" | "validated" | "error",
     context?: Record<string, any>,
-    error?: Error
+    error?: Error,
   ): void {
-    const level = action === 'error' ? LogLevel.ERROR : LogLevel.LOG;
+    const level = action === "error" ? LogLevel.ERROR : LogLevel.LOG;
     const message = `Configuration ${action}`;
 
     this.logStructured({
@@ -351,7 +355,7 @@ export class EnhancedLogger implements LoggerService {
       context: {
         ...context,
         configAction: action,
-        tags: ['configuration', action],
+        tags: ["configuration", action],
       },
       error,
       timestamp: new Date(),
@@ -367,7 +371,7 @@ export class EnhancedLogger implements LoggerService {
     duration: number,
     functionId?: string,
     runId?: string,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ): void {
     this.debug(`Performance: ${operation} took ${duration}ms`, {
       ...context,
@@ -375,7 +379,7 @@ export class EnhancedLogger implements LoggerService {
       duration,
       functionId,
       runId,
-      tags: ['performance'],
+      tags: ["performance"],
     });
   }
 
@@ -387,7 +391,7 @@ export class EnhancedLogger implements LoggerService {
     message: string,
     traceId: string,
     context?: Record<string, any>,
-    error?: Error
+    error?: Error,
   ): void {
     if (this.shouldLog(level)) {
       this.logStructured({
@@ -409,7 +413,7 @@ export class EnhancedLogger implements LoggerService {
     const childLogger = new EnhancedLogger(this.context);
     childLogger.setLogLevel(this.logLevel);
     childLogger.setStructuredLogging(this.enableStructuredLogging);
-    
+
     // Override log methods to include additional context
     const originalLogStructured = childLogger.logStructured.bind(childLogger);
     childLogger.logStructured = (entry: LogEntry) => {
@@ -433,10 +437,10 @@ export class EnhancedLogger implements LoggerService {
    * Format message consistently
    */
   private formatMessage(message: any): string {
-    if (typeof message === 'string') {
+    if (typeof message === "string") {
       return message;
     }
-    
+
     if (message instanceof Error) {
       return message.message;
     }
@@ -516,11 +520,11 @@ export class LoggerFactory {
   createFunctionLogger(functionId: string, runId?: string): EnhancedLogger {
     const context = runId ? `${functionId}:${runId}` : functionId;
     const logger = new EnhancedLogger(context);
-    
+
     return logger.child({
       functionId,
       ...(runId && { runId }),
-      tags: ['function-logger'],
+      tags: ["function-logger"],
     });
   }
 

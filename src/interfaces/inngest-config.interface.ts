@@ -28,7 +28,7 @@ export interface RetryConfig {
   /**
    * Backoff strategy
    */
-  backoff?: 'exponential' | 'linear' | 'fixed';
+  backoff?: "exponential" | "linear" | "fixed";
 
   /**
    * Backoff multiplier for exponential backoff

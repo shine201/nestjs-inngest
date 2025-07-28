@@ -1,4 +1,5 @@
-import { SetMetadata } from "@nestjs/common";
+import "reflect-metadata";
+
 import { InngestFunctionConfig } from "../interfaces/inngest-function.interface";
 import { InngestFunctionError } from "../errors";
 import { METADATA_KEYS, ERROR_MESSAGES } from "../constants";
@@ -12,7 +13,7 @@ const classMetadataCache = new Map<any, any[]>();
 
 /**
  * Performance-optimized Inngest function decorator
- * 
+ *
  * Optimizations:
  * 1. Cached validation and normalization
  * 2. Fast duplicate detection
@@ -21,42 +22,71 @@ const classMetadataCache = new Map<any, any[]>();
  * 5. Memory-efficient object creation
  */
 export function OptimizedInngestFunction(
-  config: InngestFunctionConfig
+  config: InngestFunctionConfig,
 ): MethodDecorator {
   return (
     target: any,
     propertyKey: string | symbol,
-    descriptor: PropertyDescriptor
+    descriptor: PropertyDescriptor,
   ) => {
     const startTime = performance.now();
-    
+
     try {
+      // Validate property descriptor
+      if (!descriptor || typeof descriptor !== "object") {
+        console.warn(
+          `Invalid property descriptor for function ${config.id}. Skipping registration.`,
+        );
+        return;
+      }
+
       // Fast validation using cached processor
       MetadataProcessor.validateFunctionConfig(config);
 
       // Fast normalization with caching
-      const normalizedConfig = MetadataProcessor.normalizeFunctionConfig(config);
+      const normalizedConfig =
+        MetadataProcessor.normalizeFunctionConfig(config);
 
       // Efficient duplicate detection
       validateNoDuplicatesOptimized(target, normalizedConfig);
 
-      // Optimized metadata storage
-      storeMetadataOptimized(target, propertyKey as string, normalizedConfig, descriptor);
+      // Optimized metadata storage with fallback
+      try {
+        storeMetadataOptimized(
+          target,
+          propertyKey as string,
+          normalizedConfig,
+          descriptor,
+        );
+      } catch (metadataError) {
+        // Graceful fallback when Reflect is not available
+        if (!Reflect.defineMetadata) {
+          console.warn(
+            `Metadata storage not available for function ${normalizedConfig.id}. Function will still work but may not be discoverable.`,
+          );
+          return;
+        }
+        throw metadataError;
+      }
 
       // Track registration performance
       const registrationTime = performance.now() - startTime;
-      if (registrationTime > 1) { // Only log if registration takes > 1ms
-        console.debug(`Function ${normalizedConfig.id} registration took ${registrationTime.toFixed(2)}ms`);
+      if (registrationTime > 1) {
+        // Only log if registration takes > 1ms
+        console.debug(
+          `Function ${normalizedConfig.id} registration took ${registrationTime.toFixed(2)}ms`,
+        );
       }
     } catch (error) {
       if (error instanceof InngestFunctionError) {
         throw error;
       }
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       throw new InngestFunctionError(
         `Failed to register Inngest function: ${errorMessage}`,
         config.id,
-        error as Error
+        error as Error,
       );
     }
   };
@@ -67,7 +97,7 @@ export function OptimizedInngestFunction(
  */
 function validateNoDuplicatesOptimized(
   target: any,
-  config: InngestFunctionConfig
+  config: InngestFunctionConfig,
 ): void {
   const className = target.constructor.name;
   const functionId = config.id;
@@ -78,24 +108,24 @@ function validateNoDuplicatesOptimized(
   }
 
   const classRegistry = decoratorRegistry.get(className)!;
-  
+
   if (classRegistry.has(functionId)) {
     throw new InngestFunctionError(
       ERROR_MESSAGES.DUPLICATE_FUNCTION_ID,
-      functionId
+      functionId,
     );
   }
 
   // Check existing metadata for duplicates
   const existingMetadata = getExistingMetadataOptimized(target);
   const duplicateFunction = existingMetadata.find(
-    (meta: any) => meta.config.id === functionId
+    (meta: any) => meta.config.id === functionId,
   );
-  
+
   if (duplicateFunction) {
     throw new InngestFunctionError(
       ERROR_MESSAGES.DUPLICATE_FUNCTION_ID,
-      functionId
+      functionId,
     );
   }
 
@@ -113,11 +143,14 @@ function getExistingMetadataOptimized(target: any): any[] {
   }
 
   // Retrieve metadata efficiently
-  const metadata = MetadataProcessor.extractMetadata(target, METADATA_KEYS.INNGEST_FUNCTION);
-  
+  const metadata = MetadataProcessor.extractMetadata(
+    target,
+    METADATA_KEYS.INNGEST_FUNCTION,
+  );
+
   // Cache the result
   classMetadataCache.set(target, metadata);
-  
+
   return metadata;
 }
 
@@ -128,25 +161,39 @@ function storeMetadataOptimized(
   target: any,
   propertyKey: string,
   config: InngestFunctionConfig,
-  descriptor: PropertyDescriptor
+  descriptor: PropertyDescriptor,
 ): void {
   // Get existing metadata efficiently
   const existingMetadata = getExistingMetadataOptimized(target);
-  
+
   // Create optimized metadata object
-  const newMetadata = createOptimizedMetadata(target, propertyKey, config, descriptor);
-  
+  const newMetadata = createOptimizedMetadata(
+    target,
+    propertyKey,
+    config,
+    descriptor,
+  );
+
   // Use efficient array operations
   const updatedMetadata = [...existingMetadata, newMetadata];
-  
+
   // Store metadata efficiently
-  MetadataProcessor.storeMetadata(target, METADATA_KEYS.INNGEST_FUNCTION, updatedMetadata);
-  
+  MetadataProcessor.storeMetadata(
+    target,
+    METADATA_KEYS.INNGEST_FUNCTION,
+    updatedMetadata,
+  );
+
   // Update cache
   classMetadataCache.set(target, updatedMetadata);
-  
+
   // Set method-level metadata for quick access
-  SetMetadata(METADATA_KEYS.INNGEST_FUNCTION, config)(target, propertyKey, descriptor);
+  Reflect.defineMetadata(
+    METADATA_KEYS.INNGEST_FUNCTION,
+    newMetadata,
+    target,
+    propertyKey,
+  );
 }
 
 /**
@@ -156,7 +203,7 @@ function createOptimizedMetadata(
   target: any,
   propertyKey: string,
   config: InngestFunctionConfig,
-  descriptor: PropertyDescriptor
+  descriptor: PropertyDescriptor,
 ): any {
   return {
     target,
@@ -179,10 +226,13 @@ export function getOptimizedInngestFunctionMetadata(target: any): any[] {
 /**
  * Fast function existence check
  */
-export function isOptimizedInngestFunction(target: any, propertyKey: string): boolean {
+export function isOptimizedInngestFunction(
+  target: any,
+  propertyKey: string,
+): boolean {
   const className = target.constructor.name;
   const classRegistry = decoratorRegistry.get(className);
-  
+
   if (!classRegistry) {
     return false;
   }
@@ -197,10 +247,12 @@ export function isOptimizedInngestFunction(target: any, propertyKey: string): bo
  */
 export function getOptimizedFunctionConfig(
   target: any,
-  propertyKey: string
+  propertyKey: string,
 ): InngestFunctionConfig | undefined {
   const metadata = getExistingMetadataOptimized(target);
-  const functionMeta = metadata.find((meta) => meta.propertyKey === propertyKey);
+  const functionMeta = metadata.find(
+    (meta) => meta.propertyKey === propertyKey,
+  );
   return functionMeta?.config;
 }
 
@@ -209,14 +261,14 @@ export function getOptimizedFunctionConfig(
  */
 export function batchProcessMetadata(targets: any[]): Map<any, any[]> {
   const results = new Map<any, any[]>();
-  
+
   for (const target of targets) {
     const metadata = getOptimizedInngestFunctionMetadata(target);
     if (metadata.length > 0) {
       results.set(target, metadata);
     }
   }
-  
+
   return results;
 }
 
@@ -225,8 +277,8 @@ export function batchProcessMetadata(targets: any[]): Map<any, any[]> {
  */
 export function validateClassMetadata(target: any): void {
   const metadata = getOptimizedInngestFunctionMetadata(target);
-  const configs = metadata.map(meta => meta.config);
-  
+  const configs = metadata.map((meta) => meta.config);
+
   // Use batch validation for better performance
   MetadataProcessor.batchValidateConfigs(configs);
 }
@@ -254,10 +306,10 @@ export function getDecoratorPerformanceStats(): {
     totalFunctions += classRegistry.size;
   }
 
-  const cacheHitRate = classMetadataCache.size > 0 ? 
-    totalFunctions / classMetadataCache.size : 0;
+  const cacheHitRate =
+    classMetadataCache.size > 0 ? totalFunctions / classMetadataCache.size : 0;
 
-  const memoryUsage = 
+  const memoryUsage =
     decoratorRegistry.size * 100 + // Registry overhead
     classMetadataCache.size * 500 + // Cache overhead
     totalFunctions * 200; // Function metadata overhead
@@ -281,25 +333,30 @@ export function findFunctionMetadataById(functionId: string): {
 } | null {
   // Search through cached metadata efficiently
   for (const [target, metadataArray] of classMetadataCache.entries()) {
-    const metadata = metadataArray.find(meta => meta.config.id === functionId);
+    const metadata = metadataArray.find(
+      (meta) => meta.config.id === functionId,
+    );
     if (metadata) {
       return { target, metadata };
     }
   }
-  
+
   return null;
 }
 
 /**
  * Optimized bulk function lookup by multiple IDs
  */
-export function bulkFindFunctionMetadata(functionIds: string[]): Map<string, {
-  target: any;
-  metadata: any;
-}> {
+export function bulkFindFunctionMetadata(functionIds: string[]): Map<
+  string,
+  {
+    target: any;
+    metadata: any;
+  }
+> {
   const results = new Map<string, { target: any; metadata: any }>();
   const remainingIds = new Set(functionIds);
-  
+
   // Search through cached metadata efficiently
   for (const [target, metadataArray] of classMetadataCache.entries()) {
     for (const metadata of metadataArray) {
@@ -307,7 +364,7 @@ export function bulkFindFunctionMetadata(functionIds: string[]): Map<string, {
       if (remainingIds.has(id)) {
         results.set(id, { target, metadata });
         remainingIds.delete(id);
-        
+
         // Early exit if all functions found
         if (remainingIds.size === 0) {
           return results;
@@ -315,7 +372,7 @@ export function bulkFindFunctionMetadata(functionIds: string[]): Map<string, {
       }
     }
   }
-  
+
   return results;
 }
 
@@ -324,13 +381,13 @@ export function bulkFindFunctionMetadata(functionIds: string[]): Map<string, {
  */
 export function serializeMetadataForCache(metadata: any[]): string {
   // Create a lightweight representation for caching
-  const lightweightMetadata = metadata.map(meta => ({
+  const lightweightMetadata = metadata.map((meta) => ({
     propertyKey: meta.propertyKey,
     configId: meta.config.id,
     configHash: meta.configHash,
     registrationTime: meta.registrationTime,
   }));
-  
+
   return JSON.stringify(lightweightMetadata);
 }
 
@@ -339,16 +396,16 @@ export function serializeMetadataForCache(metadata: any[]): string {
  */
 export function deserializeMetadataFromCache(
   serialized: string,
-  target: any
+  target: any,
 ): any[] | null {
   try {
     const lightweightMetadata = JSON.parse(serialized);
-    
+
     // Reconstruct full metadata from cached data
     const fullMetadata = [];
     for (const light of lightweightMetadata) {
       const method = target[light.propertyKey];
-      if (typeof method === 'function') {
+      if (typeof method === "function") {
         // Reconstruct metadata object
         fullMetadata.push({
           target,
@@ -359,7 +416,7 @@ export function deserializeMetadataFromCache(
         });
       }
     }
-    
+
     return fullMetadata;
   } catch {
     return null;

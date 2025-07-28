@@ -23,7 +23,7 @@ describe("SignatureVerificationService", () => {
     }).compile();
 
     service = module.get<SignatureVerificationService>(
-      SignatureVerificationService
+      SignatureVerificationService,
     );
 
     // Setup mock request
@@ -54,12 +54,12 @@ describe("SignatureVerificationService", () => {
       mockRequest.body = { test: "data" };
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, validConfig)
+        service.verifyWebhookSignature(mockRequest as Request, validConfig),
       ).resolves.not.toThrow();
 
       expect(mockCrypto.createHmac).toHaveBeenCalledWith(
         "sha256",
-        validConfig.signingKey
+        validConfig.signingKey,
       );
       expect(mockCrypto.timingSafeEqual).toHaveBeenCalled();
     });
@@ -68,7 +68,10 @@ describe("SignatureVerificationService", () => {
       const configWithoutKey = { signingKey: "" };
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, configWithoutKey)
+        service.verifyWebhookSignature(
+          mockRequest as Request,
+          configWithoutKey,
+        ),
       ).resolves.not.toThrow();
 
       expect(mockCrypto.createHmac).not.toHaveBeenCalled();
@@ -78,11 +81,11 @@ describe("SignatureVerificationService", () => {
       mockRequest.headers = {}; // No signature header
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, validConfig)
+        service.verifyWebhookSignature(mockRequest as Request, validConfig),
       ).rejects.toThrow(InngestWebhookError);
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, validConfig)
+        service.verifyWebhookSignature(mockRequest as Request, validConfig),
       ).rejects.toThrow("Missing signature header");
     });
 
@@ -92,11 +95,11 @@ describe("SignatureVerificationService", () => {
       };
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, validConfig)
+        service.verifyWebhookSignature(mockRequest as Request, validConfig),
       ).rejects.toThrow(InngestWebhookError);
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, validConfig)
+        service.verifyWebhookSignature(mockRequest as Request, validConfig),
       ).rejects.toThrow("Invalid signature header format");
     });
 
@@ -106,11 +109,11 @@ describe("SignatureVerificationService", () => {
       };
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, validConfig)
+        service.verifyWebhookSignature(mockRequest as Request, validConfig),
       ).rejects.toThrow(InngestWebhookError);
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, validConfig)
+        service.verifyWebhookSignature(mockRequest as Request, validConfig),
       ).rejects.toThrow("Missing required signature components");
     });
 
@@ -120,11 +123,11 @@ describe("SignatureVerificationService", () => {
       };
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, validConfig)
+        service.verifyWebhookSignature(mockRequest as Request, validConfig),
       ).rejects.toThrow(InngestWebhookError);
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, validConfig)
+        service.verifyWebhookSignature(mockRequest as Request, validConfig),
       ).rejects.toThrow("Invalid timestamp format");
     });
 
@@ -135,11 +138,11 @@ describe("SignatureVerificationService", () => {
       };
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, validConfig)
+        service.verifyWebhookSignature(mockRequest as Request, validConfig),
       ).rejects.toThrow(InngestWebhookError);
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, validConfig)
+        service.verifyWebhookSignature(mockRequest as Request, validConfig),
       ).rejects.toThrow("Request timestamp too old");
     });
 
@@ -150,7 +153,7 @@ describe("SignatureVerificationService", () => {
       };
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, validConfig)
+        service.verifyWebhookSignature(mockRequest as Request, validConfig),
       ).resolves.not.toThrow();
     });
 
@@ -163,11 +166,11 @@ describe("SignatureVerificationService", () => {
       mockCrypto.timingSafeEqual.mockReturnValue(false);
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, validConfig)
+        service.verifyWebhookSignature(mockRequest as Request, validConfig),
       ).rejects.toThrow(InngestWebhookError);
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, validConfig)
+        service.verifyWebhookSignature(mockRequest as Request, validConfig),
       ).rejects.toThrow(ERROR_MESSAGES.SIGNATURE_VERIFICATION_FAILED);
     });
 
@@ -181,12 +184,12 @@ describe("SignatureVerificationService", () => {
       (mockRequest as any).rawBody = rawBody;
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, validConfig)
+        service.verifyWebhookSignature(mockRequest as Request, validConfig),
       ).resolves.not.toThrow();
 
       expect(mockCrypto.update).toHaveBeenCalledWith(
         `${timestamp}.${rawBody}`,
-        "utf8"
+        "utf8",
       );
     });
 
@@ -200,12 +203,12 @@ describe("SignatureVerificationService", () => {
       mockRequest.body = bodyBuffer;
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, validConfig)
+        service.verifyWebhookSignature(mockRequest as Request, validConfig),
       ).resolves.not.toThrow();
 
       expect(mockCrypto.update).toHaveBeenCalledWith(
         `${timestamp}.${bodyBuffer.toString("utf8")}`,
-        "utf8"
+        "utf8",
       );
     });
 
@@ -221,7 +224,7 @@ describe("SignatureVerificationService", () => {
       };
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, customConfig)
+        service.verifyWebhookSignature(mockRequest as Request, customConfig),
       ).rejects.toThrow("Request timestamp too old");
     });
 
@@ -232,7 +235,7 @@ describe("SignatureVerificationService", () => {
       };
 
       await expect(
-        service.verifyWebhookSignature(mockRequest as Request, validConfig)
+        service.verifyWebhookSignature(mockRequest as Request, validConfig),
       ).resolves.not.toThrow();
     });
   });
@@ -246,14 +249,14 @@ describe("SignatureVerificationService", () => {
       const signature = await service.createTestSignature(
         body,
         signingKey,
-        timestamp
+        timestamp,
       );
 
       expect(signature).toMatch(/^s=.+,t=1234567890$/);
       expect(mockCrypto.createHmac).toHaveBeenCalledWith("sha256", signingKey);
       expect(mockCrypto.update).toHaveBeenCalledWith(
         `${timestamp}.${body}`,
-        "utf8"
+        "utf8",
       );
     });
 
@@ -283,7 +286,7 @@ describe("SignatureVerificationService", () => {
       };
 
       expect(() => service.validateSignatureConfig(invalidConfig)).toThrow(
-        "Signing key is required"
+        "Signing key is required",
       );
     });
 
@@ -294,7 +297,7 @@ describe("SignatureVerificationService", () => {
       };
 
       expect(() => service.validateSignatureConfig(invalidConfig)).toThrow(
-        "Tolerance seconds must be non-negative"
+        "Tolerance seconds must be non-negative",
       );
     });
 
@@ -310,7 +313,7 @@ describe("SignatureVerificationService", () => {
       service.validateSignatureConfig(configWithShortKey);
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Signing key appears to be too short")
+        expect.stringContaining("Signing key appears to be too short"),
       );
 
       loggerSpy.mockRestore();
@@ -329,7 +332,7 @@ describe("SignatureVerificationService", () => {
       service.validateSignatureConfig(configWithHighTolerance);
 
       expect(loggerSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Tolerance seconds is very high")
+        expect.stringContaining("Tolerance seconds is very high"),
       );
 
       loggerSpy.mockRestore();

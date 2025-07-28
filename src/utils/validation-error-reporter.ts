@@ -83,7 +83,7 @@ export class ValidationErrorReporter {
     path: string,
     expected: string,
     actual: any,
-    message?: string
+    message?: string,
   ): void {
     this.addError({
       path,
@@ -114,7 +114,7 @@ export class ValidationErrorReporter {
     path: string,
     format: string,
     actual: any,
-    message?: string
+    message?: string,
   ): void {
     this.addError({
       path,
@@ -133,13 +133,12 @@ export class ValidationErrorReporter {
     min: number | undefined,
     max: number | undefined,
     actual: any,
-    message?: string
+    message?: string,
   ): void {
     const range = `${min ?? ""}..${max ?? ""}`;
     this.addError({
       path,
-      message:
-        message || `Value ${actual} is outside allowed range ${range}`,
+      message: message || `Value ${actual} is outside allowed range ${range}`,
       expected: `value in range ${range}`,
       actual,
       code: "OUT_OF_RANGE",
@@ -154,7 +153,7 @@ export class ValidationErrorReporter {
     message: string,
     code: string = "CUSTOM_VALIDATION",
     expected?: string,
-    actual?: any
+    actual?: any,
   ): void {
     this.addError({
       path,
@@ -246,7 +245,7 @@ export class TypeChecker {
     path: string,
     value: any,
     expectedType: string,
-    message?: string
+    message?: string,
   ): boolean {
     const actualType = this.getActualType(value);
     if (actualType !== expectedType) {
@@ -275,7 +274,7 @@ export class TypeChecker {
     value: string,
     pattern: RegExp,
     formatName: string,
-    message?: string
+    message?: string,
   ): boolean {
     if (!pattern.test(value)) {
       this.reporter.addFormatError(path, formatName, value, message);
@@ -292,9 +291,12 @@ export class TypeChecker {
     value: number,
     min?: number,
     max?: number,
-    message?: string
+    message?: string,
   ): boolean {
-    if ((min !== undefined && value < min) || (max !== undefined && value > max)) {
+    if (
+      (min !== undefined && value < min) ||
+      (max !== undefined && value > max)
+    ) {
       this.reporter.addRangeError(path, min, max, value, message);
       return false;
     }
@@ -308,7 +310,7 @@ export class TypeChecker {
     path: string,
     obj: any,
     requiredProps: string[],
-    optionalProps: string[] = []
+    optionalProps: string[] = [],
   ): boolean {
     if (!this.checkType(path, obj, "object")) {
       return false;
@@ -331,7 +333,7 @@ export class TypeChecker {
         this.reporter.addCustomError(
           `${path}.${prop}`,
           `Unexpected property "${prop}"`,
-          "UNEXPECTED_PROPERTY"
+          "UNEXPECTED_PROPERTY",
         );
         isValid = false;
       }
@@ -359,13 +361,15 @@ export class EventValidator {
    */
   static validateEventStructure(
     event: any,
-    reporter: ValidationErrorReporter
+    reporter: ValidationErrorReporter,
   ): boolean {
     const checker = new TypeChecker(reporter);
     let isValid = true;
 
     // Check if event is an object
-    if (!checker.checkType("event", event, "object", "Event must be an object")) {
+    if (
+      !checker.checkType("event", event, "object", "Event must be an object")
+    ) {
       return false;
     }
 
@@ -389,14 +393,27 @@ export class EventValidator {
       if (checker.checkType("event.user", event.user, "object")) {
         if (!checker.checkRequired("event.user.id", event.user.id)) {
           isValid = false;
-        } else if (!checker.checkType("event.user.id", event.user.id, "string")) {
+        } else if (
+          !checker.checkType("event.user.id", event.user.id, "string")
+        ) {
           isValid = false;
-        } else if (typeof event.user.id === "string" && event.user.id.trim() === "") {
-          reporter.addFormatError("event.user.id", "non-empty string", event.user.id, "user.id must be a non-empty string");
+        } else if (
+          typeof event.user.id === "string" &&
+          event.user.id.trim() === ""
+        ) {
+          reporter.addFormatError(
+            "event.user.id",
+            "non-empty string",
+            event.user.id,
+            "user.id must be a non-empty string",
+          );
           isValid = false;
         }
 
-        if (event.user.email !== undefined && !checker.checkType("event.user.email", event.user.email, "string")) {
+        if (
+          event.user.email !== undefined &&
+          !checker.checkType("event.user.email", event.user.email, "string")
+        ) {
           isValid = false;
         }
       } else {
@@ -412,11 +429,17 @@ export class EventValidator {
       }
     }
 
-    if (event.id !== undefined && !checker.checkType("event.id", event.id, "string")) {
+    if (
+      event.id !== undefined &&
+      !checker.checkType("event.id", event.id, "string")
+    ) {
       isValid = false;
     }
 
-    if (event.v !== undefined && !checker.checkType("event.v", event.v, "string")) {
+    if (
+      event.v !== undefined &&
+      !checker.checkType("event.v", event.v, "string")
+    ) {
       isValid = false;
     }
 
@@ -429,7 +452,7 @@ export class EventValidator {
   static validateEventNameFormat(
     eventName: string,
     reporter: ValidationErrorReporter,
-    strict: boolean = false
+    strict: boolean = false,
   ): boolean {
     const checker = new TypeChecker(reporter);
 
@@ -441,7 +464,7 @@ export class EventValidator {
         eventName,
         pattern,
         "kebab-case with dots (e.g., 'user.created')",
-        "Event name must be in kebab-case format with dot separators"
+        "Event name must be in kebab-case format with dot separators",
       );
     } else {
       // Basic validation: no whitespace or special characters except dots and hyphens
@@ -451,7 +474,7 @@ export class EventValidator {
         eventName,
         pattern,
         "alphanumeric with dots, underscores, and hyphens",
-        "Event name contains invalid characters"
+        "Event name contains invalid characters",
       );
     }
   }
@@ -462,7 +485,7 @@ export class EventValidator {
   static validateEventDataSerialization(
     data: any,
     reporter: ValidationErrorReporter,
-    maxSizeBytes: number = 1024 * 1024
+    maxSizeBytes: number = 1024 * 1024,
   ): boolean {
     try {
       const serialized = JSON.stringify(data);
@@ -474,7 +497,7 @@ export class EventValidator {
           `Event data size (${sizeBytes} bytes) exceeds maximum allowed size (${maxSizeBytes} bytes)`,
           "DATA_TOO_LARGE",
           `max ${maxSizeBytes} bytes`,
-          `${sizeBytes} bytes`
+          `${sizeBytes} bytes`,
         );
         return false;
       }
@@ -484,7 +507,7 @@ export class EventValidator {
       reporter.addCustomError(
         "event.data",
         `Event data is not JSON serializable: ${error instanceof Error ? error.message : String(error)}`,
-        "NOT_SERIALIZABLE"
+        "NOT_SERIALIZABLE",
       );
       return false;
     }

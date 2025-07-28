@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { Request } from 'express';
+import { Injectable } from "@nestjs/common";
+import { Request } from "express";
 
 /**
  * Mock implementation of SignatureVerificationService for testing
@@ -20,7 +20,7 @@ export class MockSignatureVerificationService {
     options: {
       signingKey: string;
       toleranceSeconds?: number;
-    }
+    },
   ): Promise<void> {
     this.verifyMock(request, options);
 
@@ -51,19 +51,19 @@ export class MockSignatureVerificationService {
   /**
    * Mock get verification status
    */
-  getVerificationStatus(signingKey: string): {
-    isValid: boolean;
+  getVerificationStatus(signingKey?: string): {
+    enabled: boolean;
+    hasSigningKey: boolean;
     algorithm: string;
-    keyLength: number;
-    issues: string[];
+    toleranceSeconds: number;
   } {
     this.statusMock(signingKey);
 
     return {
-      isValid: true,
-      algorithm: 'HS256',
-      keyLength: signingKey.length,
-      issues: [],
+      enabled: !!signingKey,
+      hasSigningKey: !!signingKey,
+      algorithm: "HMAC-SHA256",
+      toleranceSeconds: 300,
     };
   }
 
@@ -84,7 +84,9 @@ export class MockSignatureVerificationService {
   /**
    * Configure mock to fail verification with specific error
    */
-  mockVerificationFailure(message: string = 'Signature verification failed'): void {
+  mockVerificationFailure(
+    message: string = "Signature verification failed",
+  ): void {
     this.verificationError = new Error(message);
   }
 
@@ -152,7 +154,7 @@ export class MockSignatureVerificationService {
 
     this.statusMock.mockImplementation((signingKey: string) => ({
       isValid: true,
-      algorithm: 'HS256',
+      algorithm: "HS256",
       keyLength: signingKey.length,
       issues: [],
     }));
@@ -168,13 +170,16 @@ export class MockSignatureVerificationService {
   /**
    * Assert that verification was called with specific parameters
    */
-  expectVerificationCalledWith(signingKey: string, toleranceSeconds?: number): void {
+  expectVerificationCalledWith(
+    signingKey: string,
+    toleranceSeconds?: number,
+  ): void {
     expect(this.verifyMock).toHaveBeenCalledWith(
       expect.any(Object), // request object
       expect.objectContaining({
         signingKey,
         ...(toleranceSeconds !== undefined && { toleranceSeconds }),
-      })
+      }),
     );
   }
 
@@ -197,13 +202,13 @@ export class MockSignatureVerificationService {
    */
   static createMockRequestWithSignature(
     body: any,
-    signature: string = 'mock-signature',
-    timestamp: string = Date.now().toString()
+    signature: string = "mock-signature",
+    timestamp: string = Date.now().toString(),
   ): Partial<Request> {
     return {
       headers: {
-        'x-inngest-signature': signature,
-        'x-inngest-timestamp': timestamp,
+        "x-inngest-signature": signature,
+        "x-inngest-timestamp": timestamp,
       },
       body,
       rawBody: Buffer.from(JSON.stringify(body)),
@@ -227,8 +232,8 @@ export class MockSignatureVerificationService {
   static createMockRequestWithInvalidSignature(body: any): Partial<Request> {
     return {
       headers: {
-        'x-inngest-signature': 'invalid-signature',
-        'x-inngest-timestamp': Date.now().toString(),
+        "x-inngest-signature": "invalid-signature",
+        "x-inngest-timestamp": Date.now().toString(),
       },
       body,
       rawBody: Buffer.from(JSON.stringify(body)),

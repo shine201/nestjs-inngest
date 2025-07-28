@@ -83,7 +83,7 @@ Use the `@InngestFunction` decorator to define serverless functions:
 
 ```typescript
 import { Injectable } from "@nestjs/common";
-import { InngestFunction, TypedInngestFunction } from "nestjs-inngest";
+import { InngestFunction, TypedInngestFunction, InngestFunctionContext } from "nestjs-inngest";
 
 @Injectable()
 export class UserService {
@@ -92,7 +92,7 @@ export class UserService {
     name: "User Welcome Flow",
     triggers: [{ event: "user.created" }],
   })
-  async handleUserCreated(event: MyEventTypes["user.created"], { step }: any) {
+  async handleUserCreated(event: MyEventTypes["user.created"], { step, logger, runId, attempt }: InngestFunctionContext) {
     const { userId, email, name } = event.data;
 
     // Step 1: Create user profile

@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { InngestEvent } from '../../interfaces/inngest-event.interface';
+import { Injectable } from "@nestjs/common";
+import { InngestEvent } from "../../interfaces/inngest-event.interface";
 
 /**
  * Mock step tools for testing
@@ -13,11 +13,32 @@ export class MockStepTools {
   public sendEventMock = jest.fn();
 
   async run<T>(id: string, fn: () => Promise<T>): Promise<T> {
-    this.runMock(id, fn);
-    // Execute the function by default unless mocked otherwise
-    if (this.runMock.getMockImplementation()) {
-      return this.runMock(id, fn);
+    // Check if the mock has been configured with specific behavior
+    const mockImplementation = this.runMock.getMockImplementation();
+
+    if (mockImplementation) {
+      // Custom implementation provided
+      this.runMock(id, fn);
+      return mockImplementation(id, fn);
     }
+
+    // Try to call the mock and see if it returns a promise (for mockResolvedValue/mockRejectedValue)
+    try {
+      const mockResult = this.runMock(id, fn);
+      if (mockResult && typeof mockResult.then === "function") {
+        // It's a promise (from mockResolvedValue/mockRejectedValue)
+        return await mockResult;
+      }
+      if (mockResult !== undefined) {
+        // Mock returned a value
+        return mockResult;
+      }
+    } catch (error) {
+      // Mock threw an error - re-throw it
+      throw error;
+    }
+
+    // Default behavior: execute the actual function
     return fn();
   }
 
@@ -31,27 +52,36 @@ export class MockStepTools {
     return Promise.resolve();
   }
 
-  async waitForEvent<T = any>(id: string, options: {
-    event: string;
-    timeout?: number;
-    if?: string;
-  }): Promise<T> {
+  async waitForEvent<T = any>(
+    id: string,
+    options: {
+      event: string;
+      timeout?: number;
+      if?: string;
+    },
+  ): Promise<T> {
     this.waitForEventMock(id, options);
     // Return mock event data by default
     return { name: options.event, data: { mock: true } } as T;
   }
 
-  async invoke<T = any>(id: string, options: {
-    function: string;
-    data?: any;
-    timeout?: number;
-  }): Promise<T> {
+  async invoke<T = any>(
+    id: string,
+    options: {
+      function: string;
+      data?: any;
+      timeout?: number;
+    },
+  ): Promise<T> {
     this.invokeMock(id, options);
     // Return mock result by default
-    return { result: 'mocked' } as T;
+    return { result: "mocked" } as T;
   }
 
-  async sendEvent(id: string, events: InngestEvent | InngestEvent[]): Promise<void> {
+  async sendEvent(
+    id: string,
+    events: InngestEvent | InngestEvent[],
+  ): Promise<void> {
     this.sendEventMock(id, events);
     return Promise.resolve();
   }
@@ -109,7 +139,7 @@ export class MockExecutionContextService {
     functionMetadata: any,
     event: InngestEvent,
     runId: string,
-    attempt: number = 1
+    attempt: number = 1,
   ): Promise<MockExecutionContext> {
     const context: MockExecutionContext = {
       functionId: functionMetadata.id,
@@ -120,9 +150,12 @@ export class MockExecutionContextService {
       env: process.env,
     };
 
+    // Store function metadata for execution
+    (context as any).functionMetadata = functionMetadata;
+
     this.contexts.set(runId, context);
     this.createContextMock(functionMetadata, event, runId, attempt);
-    
+
     return context;
   }
 
@@ -131,16 +164,29 @@ export class MockExecutionContextService {
    */
   async executeFunction(context: MockExecutionContext): Promise<any> {
     this.executeFunctionMock(context);
-    
-    // Return mock result by default
-    if (this.executeFunctionMock.getMockImplementation()) {
-      return this.executeFunctionMock(context);
+
+    // If a mock implementation is provided, use it
+    const mockImpl = this.executeFunctionMock.getMockImplementation();
+    if (mockImpl) {
+      return mockImpl(context);
     }
-    
-    return { 
-      result: 'mock execution result',
+
+    // Otherwise, try to execute the actual handler if available
+    const functionMetadata =
+      (context as any).handler || (context as any).functionMetadata;
+    if (functionMetadata && typeof functionMetadata.handler === "function") {
+      try {
+        return await functionMetadata.handler(context.event, context);
+      } catch (error) {
+        throw error;
+      }
+    }
+
+    // Fallback to mock result
+    return {
+      result: "mock execution result",
       functionId: context.functionId,
-      runId: context.runId 
+      runId: context.runId,
     };
   }
 
@@ -207,12 +253,14 @@ export class MockExecutionContextService {
    */
   mockExecutionDelay(delay: number, result?: any): void {
     this.executeFunctionMock.mockImplementation(async (context) => {
-      await new Promise(resolve => setTimeout(resolve, delay));
-      return result || { 
-        result: 'delayed mock result',
-        functionId: context.functionId,
-        runId: context.runId 
-      };
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return (
+        result || {
+          result: "delayed mock result",
+          functionId: context.functionId,
+          runId: context.runId,
+        }
+      );
     });
   }
 
@@ -225,24 +273,26 @@ export class MockExecutionContextService {
     this.clearContexts();
 
     // Restore default implementations
-    this.createContextMock.mockImplementation(async (functionMetadata, event, runId, attempt = 1) => {
-      const context: MockExecutionContext = {
-        functionId: functionMetadata.id,
-        runId,
-        event,
-        attempt,
-        step: new MockStepTools(),
-        env: process.env,
-      };
-      this.contexts.set(runId, context);
-      return context;
-    });
+    this.createContextMock.mockImplementation(
+      async (functionMetadata, event, runId, attempt = 1) => {
+        const context: MockExecutionContext = {
+          functionId: functionMetadata.id,
+          runId,
+          event,
+          attempt,
+          step: new MockStepTools(),
+          env: process.env,
+        };
+        this.contexts.set(runId, context);
+        return context;
+      },
+    );
 
     this.executeFunctionMock.mockImplementation(async (context) => {
-      return { 
-        result: 'mock execution result',
+      return {
+        result: "mock execution result",
         functionId: context.functionId,
-        runId: context.runId 
+        runId: context.runId,
       };
     });
   }
@@ -257,7 +307,9 @@ export class MockExecutionContextService {
       expect(context!.functionId).toBe(functionId);
     } else {
       const contexts = this.getAllContexts();
-      const matchingContext = contexts.find(ctx => ctx.functionId === functionId);
+      const matchingContext = contexts.find(
+        (ctx) => ctx.functionId === functionId,
+      );
       expect(matchingContext).toBeDefined();
     }
   }
@@ -272,10 +324,14 @@ export class MockExecutionContextService {
   /**
    * Assert that step method was called
    */
-  expectStepCalled(runId: string, stepMethod: keyof MockStepTools, ...args: any[]): void {
+  expectStepCalled(
+    runId: string,
+    stepMethod: keyof MockStepTools,
+    ...args: any[]
+  ): void {
     const context = this.getContext(runId);
     expect(context).toBeDefined();
-    
+
     const stepMock = context!.step[stepMethod] as jest.Mock;
     expect(stepMock).toHaveBeenCalledWith(...args);
   }

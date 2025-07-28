@@ -224,14 +224,14 @@ describe("TypedEventBuilder", () => {
       const schema1: EventValidationSchema<TestEventRegistry["user.created"]> =
         {
           validate: (
-            data: unknown
+            data: unknown,
           ): data is TestEventRegistry["user.created"] => true,
         };
       const schema2: EventValidationSchema<
         TestEventRegistry["order.completed"]
       > = {
         validate: (
-          data: unknown
+          data: unknown,
         ): data is TestEventRegistry["order.completed"] => true,
       };
 
@@ -267,10 +267,10 @@ describe("EventTypeInference", () => {
       };
 
       expect(EventTypeInference.isEventOfType(event, "user.created")).toBe(
-        true
+        true,
       );
       expect(EventTypeInference.isEventOfType(event, "user.updated")).toBe(
-        false
+        false,
       );
     });
   });
@@ -339,10 +339,10 @@ describe("EventPatternMatcher", () => {
       expect(matcher.matchesPattern("user.created", "user-events")).toBe(true);
       expect(matcher.matchesPattern("user.updated", "user-events")).toBe(true);
       expect(matcher.matchesPattern("order.completed", "user-events")).toBe(
-        false
+        false,
       );
       expect(matcher.matchesPattern("order.completed", "order-events")).toBe(
-        true
+        true,
       );
     });
 

@@ -1,12 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PerformanceIntegrationService } from '../services/performance-integration.service';
-import { OptimizedFunctionRegistry } from '../services/optimized-function-registry.service';
-import { MemoryOptimizer } from '../utils/memory-optimizer';
-import { RequestOptimizer } from '../utils/request-optimizer';
-import { ConnectionPool } from '../utils/connection-pool';
-import { Logger } from '@nestjs/common';
+import { Test, TestingModule } from "@nestjs/testing";
+import { PerformanceIntegrationService } from "../services/performance-integration.service";
+import { OptimizedFunctionRegistry } from "../services/optimized-function-registry.service";
+import { MemoryOptimizer } from "../utils/memory-optimizer";
+import { RequestOptimizer } from "../utils/request-optimizer";
+import { ConnectionPool } from "../utils/connection-pool";
+import { Logger } from "@nestjs/common";
 
-describe('PerformanceIntegrationService', () => {
+describe("PerformanceIntegrationService", () => {
   let service: PerformanceIntegrationService;
   let functionRegistry: OptimizedFunctionRegistry;
   let memoryOptimizer: MemoryOptimizer;
@@ -18,13 +18,13 @@ describe('PerformanceIntegrationService', () => {
     const mockFunctionRegistry = {
       getStats: jest.fn().mockReturnValue({
         functionCount: 10,
-        registrationTimes: new Map([['test', 100]]),
+        registrationTimes: new Map([["test", 100]]),
         cacheHitRate: 0.8,
         totalMemoryUsage: 1000000,
       }),
       getPerformanceMetrics: jest.fn().mockReturnValue({
         functionCount: 10,
-        registrationTimes: new Map([['test', 100]]),
+        registrationTimes: new Map([["test", 100]]),
         cacheHitRate: 0.8,
         totalMemoryUsage: 1000000,
       }),
@@ -56,13 +56,13 @@ describe('PerformanceIntegrationService', () => {
           samples: 10,
           averageUsage: 90 * 1024 * 1024,
           peakUsage: 120 * 1024 * 1024,
-          trend: 'stable' as const,
+          trend: "stable" as const,
         },
       }),
       analyzeMemoryUsage: jest.fn().mockReturnValue({
         recommendations: [],
-        severity: 'medium' as const,
-        optimizationOpportunities: ['Test optimization'],
+        severity: "medium" as const,
+        optimizationOpportunities: ["Test optimization"],
       }),
       optimize: jest.fn(),
       forceGarbageCollection: jest.fn(),
@@ -147,8 +147,12 @@ describe('PerformanceIntegrationService', () => {
       ],
     }).compile();
 
-    service = module.get<PerformanceIntegrationService>(PerformanceIntegrationService);
-    functionRegistry = module.get<OptimizedFunctionRegistry>(OptimizedFunctionRegistry);
+    service = module.get<PerformanceIntegrationService>(
+      PerformanceIntegrationService,
+    );
+    functionRegistry = module.get<OptimizedFunctionRegistry>(
+      OptimizedFunctionRegistry,
+    );
     memoryOptimizer = module.get<MemoryOptimizer>(MemoryOptimizer);
     requestOptimizer = module.get<RequestOptimizer>(RequestOptimizer);
     connectionPool = module.get<ConnectionPool>(ConnectionPool);
@@ -158,31 +162,31 @@ describe('PerformanceIntegrationService', () => {
     await module.close();
   });
 
-  describe('initialization', () => {
-    it('should be defined', () => {
+  describe("initialization", () => {
+    it("should be defined", () => {
       expect(service).toBeDefined();
     });
 
-    it('should initialize health monitoring', async () => {
-      const spy = jest.spyOn(service as any, 'startHealthMonitoring');
-      
+    it("should initialize health monitoring", async () => {
+      const spy = jest.spyOn(service as any, "startHealthMonitoring");
+
       await service.onModuleInit();
-      
+
       expect(spy).toHaveBeenCalled();
       spy.mockRestore();
     });
 
-    it('should perform initial optimization', async () => {
-      const spy = jest.spyOn(service as any, 'performFullOptimization');
-      
+    it("should perform initial optimization", async () => {
+      const spy = jest.spyOn(service as any, "performFullOptimization");
+
       await service.onModuleInit();
-      
+
       expect(spy).toHaveBeenCalled();
       spy.mockRestore();
     });
   });
 
-  describe('performance monitoring', () => {
+  describe("performance monitoring", () => {
     beforeEach(() => {
       jest.useFakeTimers();
     });
@@ -191,45 +195,50 @@ describe('PerformanceIntegrationService', () => {
       jest.useRealTimers();
     });
 
-    it('should collect comprehensive performance statistics', () => {
+    it("should collect comprehensive performance statistics", () => {
       const stats = service.getComprehensiveStats();
 
-      expect(stats).toHaveProperty('memory');
-      expect(stats).toHaveProperty('network');
-      expect(stats).toHaveProperty('registry');
-      expect(stats).toHaveProperty('system');
+      expect(stats).toHaveProperty("memory");
+      expect(stats).toHaveProperty("network");
+      expect(stats).toHaveProperty("registry");
+      expect(stats).toHaveProperty("system");
 
-      expect(stats.memory).toHaveProperty('current');
-      expect(stats.memory).toHaveProperty('poolStats');
-      expect(stats.memory).toHaveProperty('cacheStats');
-      expect(stats.memory).toHaveProperty('memoryTrend');
+      expect(stats.memory).toHaveProperty("current");
+      expect(stats.memory).toHaveProperty("poolStats");
+      expect(stats.memory).toHaveProperty("cacheStats");
+      expect(stats.memory).toHaveProperty("memoryTrend");
 
-      expect(stats.network).toHaveProperty('connectionPool');
-      expect(stats.network).toHaveProperty('requestOptimizer');
+      expect(stats.network).toHaveProperty("connectionPool");
+      expect(stats.network).toHaveProperty("requestOptimizer");
 
-      expect(stats.registry).toHaveProperty('functionCount');
-      expect(stats.registry).toHaveProperty('cacheHitRate');
-      expect(stats.registry).toHaveProperty('totalMemoryUsage');
+      expect(stats.registry).toHaveProperty("functionCount");
+      expect(stats.registry).toHaveProperty("cacheHitRate");
+      expect(stats.registry).toHaveProperty("totalMemoryUsage");
 
-      expect(stats.system).toHaveProperty('uptime');
-      expect(stats.system).toHaveProperty('overallHealth');
-      expect(['excellent', 'good', 'warning', 'critical']).toContain(stats.system.overallHealth);
+      expect(stats.system).toHaveProperty("uptime");
+      expect(stats.system).toHaveProperty("overallHealth");
+      expect(["excellent", "good", "warning", "critical"]).toContain(
+        stats.system.overallHealth,
+      );
     });
 
-    it('should perform health checks at regular intervals', () => {
-      const performHealthCheckSpy = jest.spyOn(service as any, 'performHealthCheck');
+    it("should perform health checks at regular intervals", () => {
+      const performHealthCheckSpy = jest.spyOn(
+        service as any,
+        "performHealthCheck",
+      );
 
       service.onModuleInit();
-      
+
       // Advance timer by 1 minute
       jest.advanceTimersByTime(60000);
-      
+
       expect(performHealthCheckSpy).toHaveBeenCalled();
-      
+
       performHealthCheckSpy.mockRestore();
     });
 
-    it('should track performance history', () => {
+    it("should track performance history", () => {
       // Simulate multiple health checks
       for (let i = 0; i < 5; i++) {
         (service as any).performHealthCheck();
@@ -237,19 +246,19 @@ describe('PerformanceIntegrationService', () => {
 
       const history = (service as any).performanceHistory;
       expect(history.length).toBe(5);
-      
+
       // Each entry should have all required properties
       history.forEach((entry: any) => {
-        expect(entry).toHaveProperty('memory');
-        expect(entry).toHaveProperty('network');
-        expect(entry).toHaveProperty('registry');
-        expect(entry).toHaveProperty('system');
+        expect(entry).toHaveProperty("memory");
+        expect(entry).toHaveProperty("network");
+        expect(entry).toHaveProperty("registry");
+        expect(entry).toHaveProperty("system");
       });
     });
 
-    it('should limit performance history size', () => {
+    it("should limit performance history size", () => {
       const maxHistorySize = (service as any).maxHistorySize;
-      
+
       // Generate more entries than the limit
       for (let i = 0; i < maxHistorySize + 10; i++) {
         (service as any).performHealthCheck();
@@ -260,23 +269,32 @@ describe('PerformanceIntegrationService', () => {
     });
   });
 
-  describe('health assessment', () => {
-    it('should determine excellent health for optimal metrics', () => {
+  describe("health assessment", () => {
+    it("should determine excellent health for optimal metrics", () => {
       // Mock optimal conditions
-      jest.spyOn(memoryOptimizer, 'getDetailedMemoryInfo').mockReturnValue({
-        current: { 
+      jest.spyOn(memoryOptimizer, "getDetailedMemoryInfo").mockReturnValue({
+        current: {
           heapUsed: 50 * 1024 * 1024,
           heapTotal: 200 * 1024 * 1024,
           external: 0,
           rss: 200 * 1024 * 1024,
           arrayBuffers: 0,
         },
-        poolStats: { 
+        poolStats: {
           eventObjects: { available: 10, inUse: 2 },
           metadataObjects: { available: 8, inUse: 1 },
         },
-        cacheStats: { functionMetadata: 10, configValidation: 5, internedStrings: 20 },
-        memoryTrend: { samples: 10, averageUsage: 40 * 1024 * 1024, peakUsage: 60 * 1024 * 1024, trend: 'stable' as const },
+        cacheStats: {
+          functionMetadata: 10,
+          configValidation: 5,
+          internedStrings: 20,
+        },
+        memoryTrend: {
+          samples: 10,
+          averageUsage: 40 * 1024 * 1024,
+          peakUsage: 60 * 1024 * 1024,
+          trend: "stable" as const,
+        },
         thresholds: {
           warning: 500 * 1024 * 1024,
           critical: 1024 * 1024 * 1024,
@@ -284,8 +302,8 @@ describe('PerformanceIntegrationService', () => {
         },
       });
 
-      jest.spyOn(requestOptimizer, 'getDetailedStats').mockReturnValue({
-        metrics: { 
+      jest.spyOn(requestOptimizer, "getDetailedStats").mockReturnValue({
+        metrics: {
           compressionSavings: 1000,
           cacheHits: 100,
           cacheMisses: 5,
@@ -294,7 +312,7 @@ describe('PerformanceIntegrationService', () => {
           averageCompressionRatio: 1.5,
           averageResponseTime: 50,
         },
-        cacheStats: { 
+        cacheStats: {
           size: 100,
           hitRate: 0.95,
           memoryUsage: 1000,
@@ -304,25 +322,34 @@ describe('PerformanceIntegrationService', () => {
       });
 
       const stats = service.getComprehensiveStats();
-      expect(stats.system.overallHealth).toBe('excellent');
+      expect(stats.system.overallHealth).toBe("excellent");
     });
 
-    it('should determine critical health for poor metrics', () => {
+    it("should determine critical health for poor metrics", () => {
       // Mock critical conditions
-      jest.spyOn(memoryOptimizer, 'getDetailedMemoryInfo').mockReturnValue({
-        current: { 
+      jest.spyOn(memoryOptimizer, "getDetailedMemoryInfo").mockReturnValue({
+        current: {
           heapUsed: 800 * 1024 * 1024,
           heapTotal: 1000 * 1024 * 1024,
           external: 0,
           rss: 1000 * 1024 * 1024,
           arrayBuffers: 0,
         },
-        poolStats: { 
+        poolStats: {
           eventObjects: { available: 1, inUse: 50 },
           metadataObjects: { available: 0, inUse: 20 },
         },
-        cacheStats: { functionMetadata: 1000, configValidation: 500, internedStrings: 2000 },
-        memoryTrend: { samples: 10, averageUsage: 700 * 1024 * 1024, peakUsage: 900 * 1024 * 1024, trend: 'increasing' as const },
+        cacheStats: {
+          functionMetadata: 1000,
+          configValidation: 500,
+          internedStrings: 2000,
+        },
+        memoryTrend: {
+          samples: 10,
+          averageUsage: 700 * 1024 * 1024,
+          peakUsage: 900 * 1024 * 1024,
+          trend: "increasing" as const,
+        },
         thresholds: {
           warning: 500 * 1024 * 1024,
           critical: 1024 * 1024 * 1024,
@@ -330,8 +357,8 @@ describe('PerformanceIntegrationService', () => {
         },
       });
 
-      jest.spyOn(requestOptimizer, 'getDetailedStats').mockReturnValue({
-        metrics: { 
+      jest.spyOn(requestOptimizer, "getDetailedStats").mockReturnValue({
+        metrics: {
           compressionSavings: 0,
           cacheHits: 10,
           cacheMisses: 90,
@@ -340,7 +367,7 @@ describe('PerformanceIntegrationService', () => {
           averageCompressionRatio: 1,
           averageResponseTime: 2000,
         },
-        cacheStats: { 
+        cacheStats: {
           size: 10,
           hitRate: 0.1,
           memoryUsage: 100,
@@ -349,26 +376,26 @@ describe('PerformanceIntegrationService', () => {
         compressionStats: { compressionEnabled: false, averageSavings: 0 },
       });
 
-      jest.spyOn(connectionPool, 'getPerformanceMetrics').mockReturnValue({
+      jest.spyOn(connectionPool, "getPerformanceMetrics").mockReturnValue({
         totalRequests: 1000,
         totalErrors: 100,
         averageResponseTime: 2500,
-        errorRate: 0.10,
+        errorRate: 0.1,
         circuitBreakerOpen: true,
         consecutiveFailures: 10,
         activeRequestMetrics: [],
       });
 
       const stats = service.getComprehensiveStats();
-      expect(stats.system.overallHealth).toBe('critical');
+      expect(stats.system.overallHealth).toBe("critical");
     });
 
-    it('should provide performance recommendations', () => {
+    it("should provide performance recommendations", () => {
       // Mock conditions that need recommendations
-      jest.spyOn(memoryOptimizer, 'analyzeMemoryUsage').mockReturnValue({
-        recommendations: ['Reduce cache sizes', 'Check for memory leaks'],
-        severity: 'medium' as const,
-        optimizationOpportunities: ['Implement object pooling'],
+      jest.spyOn(memoryOptimizer, "analyzeMemoryUsage").mockReturnValue({
+        recommendations: ["Reduce cache sizes", "Check for memory leaks"],
+        severity: "medium" as const,
+        optimizationOpportunities: ["Implement object pooling"],
       });
 
       const stats = service.getComprehensiveStats();
@@ -376,7 +403,7 @@ describe('PerformanceIntegrationService', () => {
     });
   });
 
-  describe('automatic optimization', () => {
+  describe("automatic optimization", () => {
     beforeEach(() => {
       jest.useFakeTimers();
     });
@@ -385,24 +412,36 @@ describe('PerformanceIntegrationService', () => {
       jest.useRealTimers();
     });
 
-    it('should trigger optimization when thresholds are exceeded', () => {
-      const performOptimizationSpy = jest.spyOn(service as any, 'performAutomaticOptimization');
+    it("should trigger optimization when thresholds are exceeded", () => {
+      const performOptimizationSpy = jest.spyOn(
+        service as any,
+        "performAutomaticOptimization",
+      );
 
       // Mock high memory usage
-      jest.spyOn(memoryOptimizer, 'getDetailedMemoryInfo').mockReturnValue({
-        current: { 
+      jest.spyOn(memoryOptimizer, "getDetailedMemoryInfo").mockReturnValue({
+        current: {
           heapUsed: 600 * 1024 * 1024,
           heapTotal: 800 * 1024 * 1024,
           external: 0,
           rss: 800 * 1024 * 1024,
           arrayBuffers: 0,
         },
-        poolStats: { 
+        poolStats: {
           eventObjects: { available: 10, inUse: 5 },
           metadataObjects: { available: 8, inUse: 2 },
         },
-        cacheStats: { functionMetadata: 100, configValidation: 50, internedStrings: 200 },
-        memoryTrend: { samples: 10, averageUsage: 500 * 1024 * 1024, peakUsage: 700 * 1024 * 1024, trend: 'increasing' as const },
+        cacheStats: {
+          functionMetadata: 100,
+          configValidation: 50,
+          internedStrings: 200,
+        },
+        memoryTrend: {
+          samples: 10,
+          averageUsage: 500 * 1024 * 1024,
+          peakUsage: 700 * 1024 * 1024,
+          trend: "increasing" as const,
+        },
         thresholds: {
           warning: 500 * 1024 * 1024,
           critical: 1024 * 1024 * 1024,
@@ -411,16 +450,16 @@ describe('PerformanceIntegrationService', () => {
       });
 
       service.onModuleInit();
-      
+
       // Advance timer for periodic optimization
       jest.advanceTimersByTime(300000); // 5 minutes
-      
+
       expect(performOptimizationSpy).toHaveBeenCalled();
-      
+
       performOptimizationSpy.mockRestore();
     });
 
-    it('should perform full optimization', async () => {
+    it("should perform full optimization", async () => {
       await service.performFullOptimization();
 
       expect(memoryOptimizer.optimize).toHaveBeenCalled();
@@ -429,22 +468,31 @@ describe('PerformanceIntegrationService', () => {
       expect(functionRegistry.validateFunctions).toHaveBeenCalled();
     });
 
-    it('should perform automatic optimization based on conditions', async () => {
+    it("should perform automatic optimization based on conditions", async () => {
       // Mock conditions requiring different optimizations
-      jest.spyOn(memoryOptimizer, 'getDetailedMemoryInfo').mockReturnValue({
-        current: { 
+      jest.spyOn(memoryOptimizer, "getDetailedMemoryInfo").mockReturnValue({
+        current: {
           heapUsed: 600 * 1024 * 1024,
           heapTotal: 800 * 1024 * 1024,
           external: 0,
           rss: 800 * 1024 * 1024,
           arrayBuffers: 0,
         },
-        poolStats: { 
+        poolStats: {
           eventObjects: { available: 10, inUse: 5 },
           metadataObjects: { available: 8, inUse: 2 },
         },
-        cacheStats: { functionMetadata: 100, configValidation: 50, internedStrings: 200 },
-        memoryTrend: { samples: 10, averageUsage: 500 * 1024 * 1024, peakUsage: 700 * 1024 * 1024, trend: 'increasing' as const },
+        cacheStats: {
+          functionMetadata: 100,
+          configValidation: 50,
+          internedStrings: 200,
+        },
+        memoryTrend: {
+          samples: 10,
+          averageUsage: 500 * 1024 * 1024,
+          peakUsage: 700 * 1024 * 1024,
+          trend: "increasing" as const,
+        },
         thresholds: {
           warning: 500 * 1024 * 1024,
           critical: 1024 * 1024 * 1024,
@@ -452,8 +500,8 @@ describe('PerformanceIntegrationService', () => {
         },
       });
 
-      jest.spyOn(requestOptimizer, 'getDetailedStats').mockReturnValue({
-        metrics: { 
+      jest.spyOn(requestOptimizer, "getDetailedStats").mockReturnValue({
+        metrics: {
           totalRequests: 1000,
           averageResponseTime: 1200,
           compressionSavings: 500,
@@ -462,7 +510,7 @@ describe('PerformanceIntegrationService', () => {
           batchedRequests: 100,
           averageCompressionRatio: 1.5,
         },
-        cacheStats: { 
+        cacheStats: {
           size: 100,
           hitRate: 0.6,
           memoryUsage: 10000,
@@ -479,81 +527,104 @@ describe('PerformanceIntegrationService', () => {
     });
   });
 
-  describe('performance analytics', () => {
-    it('should calculate performance trends', () => {
+  describe("performance analytics", () => {
+    it("should calculate performance trends", () => {
       // Add some performance history
       const mockHistory = [
-        { memory: { current: { heapUsed: 100 * 1024 * 1024 } }, network: {}, registry: {}, system: {} },
-        { memory: { current: { heapUsed: 110 * 1024 * 1024 } }, network: {}, registry: {}, system: {} },
-        { memory: { current: { heapUsed: 120 * 1024 * 1024 } }, network: {}, registry: {}, system: {} },
+        {
+          memory: { current: { heapUsed: 100 * 1024 * 1024 } },
+          network: {},
+          registry: {},
+          system: {},
+        },
+        {
+          memory: { current: { heapUsed: 110 * 1024 * 1024 } },
+          network: {},
+          registry: {},
+          system: {},
+        },
+        {
+          memory: { current: { heapUsed: 120 * 1024 * 1024 } },
+          network: {},
+          registry: {},
+          system: {},
+        },
       ];
-      
+
       (service as any).performanceHistory = mockHistory;
 
       const trends = service.getPerformanceTrends();
-      
-      expect(trends).toHaveProperty('memoryTrend');
-      expect(trends).toHaveProperty('performanceTrend');
-      expect(trends).toHaveProperty('recommendations');
+
+      expect(trends).toHaveProperty("memoryTrend");
+      expect(trends).toHaveProperty("performanceTrend");
+      expect(trends).toHaveProperty("recommendations");
     });
 
-    it('should detect performance degradation', () => {
+    it("should detect performance degradation", () => {
       // Mock degrading performance with sufficient data points
       const mockHistory = [];
       for (let i = 0; i < 10; i++) {
         mockHistory.push({
           memory: { current: { heapUsed: (100 + i * 50) * 1024 * 1024 } },
-          network: { requestOptimizer: { metrics: { averageResponseTime: 100 + i * 50 } } },
+          network: {
+            requestOptimizer: {
+              metrics: { averageResponseTime: 100 + i * 50 },
+            },
+          },
           registry: {},
-          system: { overallHealth: i < 5 ? 'excellent' : 'warning' }
+          system: { overallHealth: i < 5 ? "excellent" : "warning" },
         });
       }
-      
+
       (service as any).performanceHistory = mockHistory;
 
       const trends = service.getPerformanceTrends();
-      
-      expect(trends.memoryTrend).toBe('increasing');
+
+      expect(trends.memoryTrend).toBe("increasing");
       expect(trends.recommendations.length).toBeGreaterThan(0);
     });
 
-    it('should provide optimization suggestions', () => {
+    it("should provide optimization suggestions", () => {
       const suggestions = service.getOptimizationSuggestions();
-      
+
       expect(Array.isArray(suggestions)).toBe(true);
       expect(suggestions.length).toBeGreaterThan(0);
-      
+
       // Should include suggestions based on current metrics
       suggestions.forEach((suggestion: any) => {
-        expect(suggestion).toHaveProperty('category');
-        expect(suggestion).toHaveProperty('suggestion');
-        expect(suggestion).toHaveProperty('impact');
-        expect(suggestion).toHaveProperty('priority');
+        expect(suggestion).toHaveProperty("category");
+        expect(suggestion).toHaveProperty("suggestion");
+        expect(suggestion).toHaveProperty("impact");
+        expect(suggestion).toHaveProperty("priority");
       });
     });
   });
 
-  describe('memory leak detection', () => {
-    it('should detect potential memory leaks', () => {
+  describe("memory leak detection", () => {
+    it("should detect potential memory leaks", () => {
       // Mock increasing memory trend
-      jest.spyOn(memoryOptimizer, 'getDetailedMemoryInfo').mockReturnValue({
-        current: { 
+      jest.spyOn(memoryOptimizer, "getDetailedMemoryInfo").mockReturnValue({
+        current: {
           heapUsed: 500 * 1024 * 1024,
           heapTotal: 800 * 1024 * 1024,
           external: 0,
           rss: 800 * 1024 * 1024,
           arrayBuffers: 0,
         },
-        poolStats: { 
+        poolStats: {
           eventObjects: { available: 10, inUse: 5 },
           metadataObjects: { available: 8, inUse: 2 },
         },
-        cacheStats: { functionMetadata: 100, configValidation: 50, internedStrings: 200 },
-        memoryTrend: { 
-          samples: 10, 
-          averageUsage: 400 * 1024 * 1024, 
-          peakUsage: 600 * 1024 * 1024, 
-          trend: 'increasing' as const 
+        cacheStats: {
+          functionMetadata: 100,
+          configValidation: 50,
+          internedStrings: 200,
+        },
+        memoryTrend: {
+          samples: 10,
+          averageUsage: 400 * 1024 * 1024,
+          peakUsage: 600 * 1024 * 1024,
+          trend: "increasing" as const,
         },
         thresholds: {
           warning: 500 * 1024 * 1024,
@@ -563,36 +634,40 @@ describe('PerformanceIntegrationService', () => {
       });
 
       const leakDetection = service.detectMemoryLeaks();
-      
-      expect(leakDetection).toHaveProperty('potentialLeaks');
-      expect(leakDetection).toHaveProperty('severity');
-      expect(leakDetection).toHaveProperty('recommendations');
-      
+
+      expect(leakDetection).toHaveProperty("potentialLeaks");
+      expect(leakDetection).toHaveProperty("severity");
+      expect(leakDetection).toHaveProperty("recommendations");
+
       if (leakDetection.potentialLeaks) {
-        expect(leakDetection.severity).not.toBe('none');
+        expect(leakDetection.severity).not.toBe("none");
       }
     });
 
-    it('should not detect leaks with stable memory', () => {
+    it("should not detect leaks with stable memory", () => {
       // Mock stable memory trend
-      jest.spyOn(memoryOptimizer, 'getDetailedMemoryInfo').mockReturnValue({
-        current: { 
+      jest.spyOn(memoryOptimizer, "getDetailedMemoryInfo").mockReturnValue({
+        current: {
           heapUsed: 100 * 1024 * 1024,
           heapTotal: 200 * 1024 * 1024,
           external: 0,
           rss: 200 * 1024 * 1024,
           arrayBuffers: 0,
         },
-        poolStats: { 
+        poolStats: {
           eventObjects: { available: 10, inUse: 5 },
           metadataObjects: { available: 8, inUse: 2 },
         },
-        cacheStats: { functionMetadata: 50, configValidation: 25, internedStrings: 100 },
-        memoryTrend: { 
-          samples: 10, 
-          averageUsage: 95 * 1024 * 1024, 
-          peakUsage: 110 * 1024 * 1024, 
-          trend: 'stable' as const 
+        cacheStats: {
+          functionMetadata: 50,
+          configValidation: 25,
+          internedStrings: 100,
+        },
+        memoryTrend: {
+          samples: 10,
+          averageUsage: 95 * 1024 * 1024,
+          peakUsage: 110 * 1024 * 1024,
+          trend: "stable" as const,
         },
         thresholds: {
           warning: 500 * 1024 * 1024,
@@ -602,39 +677,43 @@ describe('PerformanceIntegrationService', () => {
       });
 
       const leakDetection = service.detectMemoryLeaks();
-      
+
       expect(leakDetection.potentialLeaks).toBe(false);
-      expect(leakDetection.severity).toBe('none');
+      expect(leakDetection.severity).toBe("none");
     });
   });
 
-  describe('module lifecycle', () => {
-    it('should clean up intervals on module destroy', async () => {
-      const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
-      
+  describe("module lifecycle", () => {
+    it("should clean up intervals on module destroy", async () => {
+      const clearIntervalSpy = jest.spyOn(global, "clearInterval");
+
       // Initialize the service to create intervals
       await service.onModuleInit();
-      
+
       // Destroy the module
       await service.onModuleDestroy();
-      
+
       expect(clearIntervalSpy).toHaveBeenCalled();
-      
+
       clearIntervalSpy.mockRestore();
     });
 
-    it('should log shutdown process', async () => {
-      const logSpy = jest.spyOn(service['logger'], 'log');
-      
+    it("should log shutdown process", async () => {
+      const logSpy = jest.spyOn(service["logger"], "log");
+
       await service.onModuleDestroy();
-      
-      expect(logSpy).toHaveBeenCalledWith('Performance integration service shutting down...');
-      expect(logSpy).toHaveBeenCalledWith('Performance integration service shutdown completed');
+
+      expect(logSpy).toHaveBeenCalledWith(
+        "Performance integration service shutting down...",
+      );
+      expect(logSpy).toHaveBeenCalledWith(
+        "Performance integration service shutdown completed",
+      );
     });
   });
 
-  describe('configuration and tuning', () => {
-    it('should allow threshold configuration', () => {
+  describe("configuration and tuning", () => {
+    it("should allow threshold configuration", () => {
       const customThresholds = {
         memoryUsage: 1000 * 1024 * 1024, // 1GB
         cacheHitRateThreshold: 0.8,
@@ -646,28 +725,30 @@ describe('PerformanceIntegrationService', () => {
 
       const thresholds = (service as any).optimizationThresholds;
       expect(thresholds.memoryUsage).toBe(customThresholds.memoryUsage);
-      expect(thresholds.cacheHitRateThreshold).toBe(customThresholds.cacheHitRateThreshold);
+      expect(thresholds.cacheHitRateThreshold).toBe(
+        customThresholds.cacheHitRateThreshold,
+      );
     });
 
-    it('should provide current configuration', () => {
+    it("should provide current configuration", () => {
       const config = service.getConfiguration();
-      
-      expect(config).toHaveProperty('optimizationThresholds');
-      expect(config).toHaveProperty('monitoringIntervals');
-      expect(config).toHaveProperty('historySize');
+
+      expect(config).toHaveProperty("optimizationThresholds");
+      expect(config).toHaveProperty("monitoringIntervals");
+      expect(config).toHaveProperty("historySize");
     });
   });
 
-  describe('error handling', () => {
-    it('should handle optimization errors gracefully', async () => {
-      jest.spyOn(memoryOptimizer, 'optimize').mockImplementation(() => {
-        throw new Error('Optimization failed');
+  describe("error handling", () => {
+    it("should handle optimization errors gracefully", async () => {
+      jest.spyOn(memoryOptimizer, "optimize").mockImplementation(() => {
+        throw new Error("Optimization failed");
       });
-      
+
       await expect(service.performFullOptimization()).resolves.not.toThrow();
     });
 
-    it('should handle missing dependencies gracefully', () => {
+    it("should handle missing dependencies gracefully", () => {
       // Test with null dependencies (should not happen in real usage)
       const stats = service.getPerformanceStats();
       expect(stats).toBeDefined();

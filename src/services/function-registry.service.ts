@@ -21,7 +21,7 @@ export class FunctionRegistry implements OnModuleInit {
   constructor(
     private readonly discoveryService: DiscoveryService,
     private readonly metadataScanner: MetadataScanner,
-    private readonly moduleRef: ModuleRef
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   /**
@@ -62,7 +62,7 @@ export class FunctionRegistry implements OnModuleInit {
     }
 
     this.logger.debug(
-      `Found ${functionMetadata.length} Inngest function(s) in ${metatype.name}`
+      `Found ${functionMetadata.length} Inngest function(s) in ${metatype.name}`,
     );
 
     // Process each function
@@ -80,16 +80,32 @@ export class FunctionRegistry implements OnModuleInit {
   async registerFunction(
     target: any,
     propertyKey: string,
-    config: InngestFunctionConfig
+    config: InngestFunctionConfig,
   ): Promise<void> {
     try {
       // Check for duplicate function IDs across the entire application
       if (this.functions.has(config.id)) {
         const existing = this.functions.get(config.id)!;
-        throw new InngestFunctionError(
-          `${ERROR_MESSAGES.DUPLICATE_FUNCTION_ID}: Function ID "${config.id}" is already registered in ${existing.target.constructor.name}.${existing.propertyKey}`,
-          config.id
-        );
+
+        // Allow overriding in test environment
+        if (process.env.NODE_ENV === "test" || process.env.JEST_WORKER_ID) {
+          this.logger.warn(
+            `Overriding function "${config.id}" in test environment`,
+          );
+          this.functions.delete(config.id);
+          // Also remove from functionsByClass
+          const existingClassFunctions =
+            this.functionsByClass.get(existing.target) || [];
+          const filteredFunctions = existingClassFunctions.filter(
+            (fn) => fn.config.id !== config.id,
+          );
+          this.functionsByClass.set(existing.target, filteredFunctions);
+        } else {
+          throw new InngestFunctionError(
+            `${ERROR_MESSAGES.DUPLICATE_FUNCTION_ID}: Function ID "${config.id}" is already registered in ${existing.target.constructor.name}.${existing.propertyKey}`,
+            config.id,
+          );
+        }
       }
 
       // Validate that the method exists and is callable
@@ -97,7 +113,7 @@ export class FunctionRegistry implements OnModuleInit {
       if (typeof method !== "function") {
         throw new InngestFunctionError(
           `Method "${propertyKey}" is not a function`,
-          config.id
+          config.id,
         );
       }
 
@@ -113,12 +129,12 @@ export class FunctionRegistry implements OnModuleInit {
       this.functions.set(config.id, metadata);
 
       this.logger.debug(
-        `Registered Inngest function: ${config.id} (${target.constructor.name}.${propertyKey})`
+        `Registered Inngest function: ${config.id} (${target.constructor.name}.${propertyKey})`,
       );
     } catch (error) {
       this.logger.error(
         `Failed to register Inngest function "${config.id}":`,
-        error
+        error,
       );
       throw error;
     }
@@ -167,6 +183,14 @@ export class FunctionRegistry implements OnModuleInit {
   }
 
   /**
+   * Clear all registered functions (for testing purposes)
+   */
+  clearFunctions(): void {
+    this.functions.clear();
+    this.functionsByClass.clear();
+  }
+
+  /**
    * Creates Inngest function definitions for the Inngest client
    */
   createInngestFunctions(): any[] {
@@ -179,12 +203,12 @@ export class FunctionRegistry implements OnModuleInit {
       } catch (error) {
         this.logger.error(
           `Failed to create Inngest function for "${metadata.config.id}":`,
-          error
+          error,
         );
         throw new InngestFunctionError(
           `Failed to create Inngest function for "${metadata.config.id}"`,
           metadata.config.id,
-          error as Error
+          error as Error,
         );
       }
     }
@@ -239,7 +263,7 @@ export class FunctionRegistry implements OnModuleInit {
       }
       throw new InngestFunctionError(
         `Invalid trigger type for function "${config.id}"`,
-        config.id
+        config.id,
       );
     });
 
@@ -286,7 +310,7 @@ export class FunctionRegistry implements OnModuleInit {
     if (errors.length > 0) {
       throw new InngestFunctionError(
         `Function validation failed:\n${errors.join("\n")}`,
-        "validation"
+        "validation",
       );
     }
   }

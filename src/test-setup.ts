@@ -2,6 +2,9 @@
  * Jest test setup file
  */
 
+// Import reflect-metadata for all tests
+import "reflect-metadata";
+
 // Mock console methods to reduce noise in tests
 global.console = {
   ...console,

@@ -1,3 +1,4 @@
+import { GetStepTools, Inngest } from "inngest";
 import { InngestEvent, CronTrigger } from "./inngest-event.interface";
 
 /**
@@ -98,36 +99,12 @@ export interface InngestFunctionConfig {
 }
 
 /**
- * Step tools interface for function execution
+ * Step tools interface for function execution - extends official Inngest step tools
+ * We can extend this with custom functionality while maintaining compatibility with Inngest types
  */
-export interface StepTools {
-  /**
-   * Run a step with automatic retries and error handling
-   */
-  run<T>(id: string, fn: () => Promise<T> | T): Promise<T>;
-
-  /**
-   * Sleep for a specified duration
-   */
-  sleep(duration: string | number): Promise<void>;
-
-  /**
-   * Wait for an event
-   */
-  waitForEvent(
-    event: string,
-    options?: { timeout?: string | number; if?: string }
-  ): Promise<InngestEvent>;
-
-  /**
-   * Send an event from within a function
-   */
-  sendEvent(event: InngestEvent | InngestEvent[]): Promise<void>;
-
-  /**
-   * Invoke another function
-   */
-  invoke<T>(functionId: string, data?: any): Promise<T>;
+export interface StepTools extends GetStepTools<Inngest> {
+  // We can add any additional step tools specific to our NestJS integration here
+  // For now, we use the official Inngest step tools as the base
 }
 
 /**
@@ -140,7 +117,7 @@ export interface InngestFunctionContext<T = any> {
   event: InngestEvent<T>;
 
   /**
-   * Step tools for orchestrating function execution
+   * Step tools for orchestrating function execution - now properly typed with official Inngest types
    */
   step: StepTools;
 
@@ -166,10 +143,23 @@ export interface InngestFunctionContext<T = any> {
 }
 
 /**
- * Type for Inngest function handlers
+ * Type for Inngest function handlers - supports original two-parameter pattern
+ * Compatible with: async handleEvent(event, { step, logger, runId, attempt })
+ * Now properly typed with official Inngest step tools instead of any
  */
 export type InngestFunctionHandler<T = any> = (
-  context: InngestFunctionContext<T>
+  event: InngestEvent<T>,
+  context: {
+    step: StepTools;
+    logger: {
+      info(message: string, ...args: any[]): void;
+      warn(message: string, ...args: any[]): void;
+      error(message: string, ...args: any[]): void;
+      debug(message: string, ...args: any[]): void;
+    };
+    runId: string;
+    attempt: number;
+  },
 ) => Promise<any>;
 
 /**

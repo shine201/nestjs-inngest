@@ -72,7 +72,7 @@ export class ScopeManagerService {
     } catch (error) {
       this.logger.error(
         `Failed to create execution scope for ${scopeKey}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -87,7 +87,7 @@ export class ScopeManagerService {
     options?: {
       strict?: boolean;
       fallbackToSingleton?: boolean;
-    }
+    },
   ): Promise<T> {
     const { strict = false, fallbackToSingleton = true } = options || {};
 
@@ -97,14 +97,14 @@ export class ScopeManagerService {
     } catch (error) {
       if (fallbackToSingleton) {
         this.logger.debug(
-          `Falling back to singleton resolution for ${token.name || token}`
+          `Falling back to singleton resolution for ${token.name || token}`,
         );
         try {
           return this.moduleRef.get<T>(token, { strict });
         } catch (fallbackError) {
           this.logger.error(
             `Failed to resolve provider ${token.name || token}:`,
-            fallbackError
+            fallbackError,
           );
           throw fallbackError;
         }
@@ -258,12 +258,12 @@ export const InjectInngestContext = () => {
   return (
     target: any,
     propertyKey: string | symbol | undefined,
-    parameterIndex: number
+    parameterIndex: number,
   ) => {
     // This would be implemented using NestJS's custom parameter decorator system
     // For now, we'll provide a placeholder that can be extended
     throw new Error(
-      "InjectInngestContext decorator requires full NestJS integration"
+      "InjectInngestContext decorator requires full NestJS integration",
     );
   };
 };

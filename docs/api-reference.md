@@ -507,11 +507,22 @@ type EventTypes<T extends Record<string, any>> = {
 
 ### InngestFunctionHandler<T = any>
 
-Type for function handler methods.
+Type for function handler methods. Uses the two-parameter pattern for compatibility with Inngest conventions.
 
 ```typescript
 type InngestFunctionHandler<T = any> = (
-  context: InngestFunctionContext<T>
+  event: InngestEvent<T>,
+  context: {
+    step: StepTools;
+    logger: {
+      info(message: string, ...args: any[]): void;
+      warn(message: string, ...args: any[]): void;
+      error(message: string, ...args: any[]): void;
+      debug(message: string, ...args: any[]): void;
+    };
+    runId: string;
+    attempt: number;
+  }
 ) => Promise<any>;
 ```
 

@@ -375,10 +375,10 @@ describe("@InngestFunction Decorator", () => {
       }
 
       expect(isInngestFunction(TestService.prototype, "inngestMethod")).toBe(
-        true
+        true,
       );
       expect(isInngestFunction(TestService.prototype, "regularMethod")).toBe(
-        false
+        false,
       );
     });
 
@@ -396,7 +396,7 @@ describe("@InngestFunction Decorator", () => {
 
       const retrievedConfig = getFunctionConfig(
         TestService.prototype,
-        "testMethod"
+        "testMethod",
       );
       expect(retrievedConfig).toBeDefined();
       expect(retrievedConfig!.id).toBe("test-function");

@@ -104,9 +104,9 @@ describe("InngestService - Enhanced Validation", () => {
 
       const result = service.validateEventWithDetails(event);
       expect(result.isValid).toBe(false);
-      
+
       const formatError = result.errors.find(
-        (e) => e.code === "INVALID_FORMAT" && e.path === "event.name"
+        (e) => e.code === "INVALID_FORMAT" && e.path === "event.name",
       );
       expect(formatError).toBeDefined();
     });
@@ -121,7 +121,7 @@ describe("InngestService - Enhanced Validation", () => {
 
       const result = service.validateEventWithDetails(event);
       expect(result.isValid).toBe(false);
-      
+
       const sizeError = result.errors.find((e) => e.code === "DATA_TOO_LARGE");
       expect(sizeError).toBeDefined();
     });
@@ -137,9 +137,9 @@ describe("InngestService - Enhanced Validation", () => {
 
       const result = service.validateEventWithDetails(event);
       expect(result.isValid).toBe(false);
-      
+
       const serializationError = result.errors.find(
-        (e) => e.code === "NOT_SERIALIZABLE"
+        (e) => e.code === "NOT_SERIALIZABLE",
       );
       expect(serializationError).toBeDefined();
     });
@@ -153,25 +153,31 @@ describe("InngestService - Enhanced Validation", () => {
         email: string;
         name?: string;
       }> = {
-        validate: (data): data is { userId: string; email: string; name?: string } => {
+        validate: (
+          data,
+        ): data is { userId: string; email: string; name?: string } => {
           return (
             typeof data === "object" &&
             data !== null &&
             typeof (data as any).userId === "string" &&
             typeof (data as any).email === "string" &&
-            ((data as any).name === undefined || typeof (data as any).name === "string")
+            ((data as any).name === undefined ||
+              typeof (data as any).name === "string")
           );
         },
         description: "User creation event",
         version: "1.0.0",
       };
 
-      service.registerEventSchema("user.created" as string & keyof DefaultEventRegistry, userCreatedSchema);
+      service.registerEventSchema(
+        "user.created" as string & keyof DefaultEventRegistry,
+        userCreatedSchema,
+      );
     });
 
     it("should register event schema successfully", () => {
       expect(service.hasEventSchema("user.created")).toBe(true);
-      
+
       const schemas = service.getEventSchemas();
       expect(schemas["user.created"]).toBeDefined();
     });
@@ -202,9 +208,9 @@ describe("InngestService - Enhanced Validation", () => {
 
       const result = service.validateEventWithDetails(invalidEvent);
       expect(result.isValid).toBe(false);
-      
+
       const schemaError = result.errors.find(
-        (e) => e.code === "SCHEMA_VALIDATION_FAILED"
+        (e) => e.code === "SCHEMA_VALIDATION_FAILED",
       );
       expect(schemaError).toBeDefined();
     });
@@ -212,15 +218,15 @@ describe("InngestService - Enhanced Validation", () => {
     it("should register multiple schemas", () => {
       const schemas = {
         "order.completed": {
-          validate: (data: any) => 
-            typeof data === "object" && 
-            typeof data.orderId === "string" && 
+          validate: (data: any) =>
+            typeof data === "object" &&
+            typeof data.orderId === "string" &&
             typeof data.amount === "number",
           description: "Order completion event",
         },
         "system.health": {
-          validate: (data: any) => 
-            typeof data === "object" && 
+          validate: (data: any) =>
+            typeof data === "object" &&
             ["healthy", "degraded", "unhealthy"].includes(data.status),
           description: "System health check event",
         },
@@ -255,7 +261,9 @@ describe("InngestService - Enhanced Validation", () => {
         data: null, // invalid data
       } as any;
 
-      await expect(service.send(invalidEvent)).rejects.toThrow(InngestEventError);
+      await expect(service.send(invalidEvent)).rejects.toThrow(
+        InngestEventError,
+      );
     });
 
     it("should provide detailed error information", async () => {
@@ -271,11 +279,13 @@ describe("InngestService - Enhanced Validation", () => {
       } catch (error) {
         expect(error).toBeInstanceOf(InngestEventError);
         const inngestError = error as InngestEventError;
-        
+
         // Check that validation details are included
         expect(inngestError.context?.validationErrors).toBeDefined();
         expect(inngestError.context?.detailedReport).toBeDefined();
-        expect(inngestError.context?.detailedReport).toContain("Validation failed");
+        expect(inngestError.context?.detailedReport).toContain(
+          "Validation failed",
+        );
       }
     });
 
@@ -300,14 +310,22 @@ describe("InngestService - Enhanced Validation", () => {
       // Register schema for testing
       const testSchema: EventValidationSchema<{ message: string }> = {
         validate: (data): data is { message: string } => {
-          return typeof data === "object" && typeof (data as any).message === "string";
+          return (
+            typeof data === "object" &&
+            typeof (data as any).message === "string"
+          );
         },
       };
 
-      service.registerEventSchema("test.event" as string & keyof DefaultEventRegistry, testSchema);
-      
+      service.registerEventSchema(
+        "test.event" as string & keyof DefaultEventRegistry,
+        testSchema,
+      );
+
       // Mock the Inngest client
-      (service as any).inngestClient.send = jest.fn().mockResolvedValue(undefined);
+      (service as any).inngestClient.send = jest
+        .fn()
+        .mockResolvedValue(undefined);
     });
 
     it("should validate all events against schemas in batch", async () => {
@@ -322,7 +340,9 @@ describe("InngestService - Enhanced Validation", () => {
         },
       ] as InngestEvent[];
 
-      await expect(service.sendBatch(events)).rejects.toThrow(InngestEventError);
+      await expect(service.sendBatch(events)).rejects.toThrow(
+        InngestEventError,
+      );
     });
 
     it("should pass batch validation when all events are valid", async () => {
@@ -350,9 +370,9 @@ describe("InngestService - Enhanced Validation", () => {
 
       const result = service.validateEventWithDetails(event);
       expect(result.isValid).toBe(false);
-      
+
       const nameError = result.errors.find(
-        (e) => e.path === "event.name" && e.code === "INVALID_FORMAT"
+        (e) => e.path === "event.name" && e.code === "INVALID_FORMAT",
       );
       expect(nameError).toBeDefined();
       expect(nameError?.message).toContain("kebab-case");
@@ -361,7 +381,7 @@ describe("InngestService - Enhanced Validation", () => {
     it("should allow more flexible names in non-strict mode", async () => {
       // Create service with non-strict config
       const nonStrictConfig = { ...mockConfig, strict: false };
-      
+
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           InngestService,
@@ -373,7 +393,7 @@ describe("InngestService - Enhanced Validation", () => {
       }).compile();
 
       const nonStrictService = module.get<InngestService>(InngestService);
-      
+
       const event: InngestEvent = {
         name: "User_Created", // underscore allowed in non-strict mode
         data: { test: true },

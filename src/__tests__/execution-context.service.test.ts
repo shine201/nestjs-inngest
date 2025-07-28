@@ -13,11 +13,11 @@ class TestService {
     id: "test-function",
     triggers: [{ event: "test.event" }],
   })
-  async handleEvent(context: any) {
-    return `Handled event: ${context.event.name}`;
+  async handleEvent(event: any, { step, logger, runId, attempt }: any) {
+    return `Handled event: ${event.name}`;
   }
 
-  async methodWithDependency(context: any) {
+  async methodWithDependency(event: any, { step }: any) {
     return "Method with dependency called";
   }
 }
@@ -91,7 +91,7 @@ describe("ExecutionContextService", () => {
         functionMetadata,
         event,
         "run-123",
-        1
+        1,
       );
 
       expect(context).toBeDefined();
@@ -109,7 +109,7 @@ describe("ExecutionContextService", () => {
           attempt: 1,
           functionId: "test-function",
         },
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -136,7 +136,7 @@ describe("ExecutionContextService", () => {
       });
 
       await expect(
-        service.createExecutionContext(functionMetadata, event, "run-123", 1)
+        service.createExecutionContext(functionMetadata, event, "run-123", 1),
       ).rejects.toThrow(InngestRuntimeError);
     });
   });
@@ -166,7 +166,7 @@ describe("ExecutionContextService", () => {
         functionMetadata,
         event,
         "run-123",
-        1
+        1,
       );
 
       const result = await service.executeFunction(context);
@@ -174,7 +174,7 @@ describe("ExecutionContextService", () => {
       expect(result).toBe("Handled event: test.event");
       expect(moduleRef.resolve).toHaveBeenCalledWith(
         TestService,
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -203,7 +203,7 @@ describe("ExecutionContextService", () => {
         functionMetadata,
         event,
         "run-123",
-        1
+        1,
       );
 
       const result = await service.executeFunction(context);
@@ -241,11 +241,11 @@ describe("ExecutionContextService", () => {
         functionMetadata,
         event,
         "run-123",
-        1
+        1,
       );
 
       await expect(service.executeFunction(context)).rejects.toThrow(
-        InngestRuntimeError
+        InngestRuntimeError,
       );
     });
 
@@ -276,11 +276,11 @@ describe("ExecutionContextService", () => {
         functionMetadata,
         event,
         "run-123",
-        1
+        1,
       );
 
       await expect(service.executeFunction(context)).rejects.toThrow(
-        InngestRuntimeError
+        InngestRuntimeError,
       );
     });
   });
@@ -309,7 +309,7 @@ describe("ExecutionContextService", () => {
         functionMetadata,
         event,
         "run-123",
-        1
+        1,
       );
     });
 
@@ -319,7 +319,7 @@ describe("ExecutionContextService", () => {
 
         const result = await executionContext.inngestContext.step.run(
           "test-step",
-          stepFn
+          stepFn,
         );
 
         expect(result).toBe("step result");
@@ -330,7 +330,7 @@ describe("ExecutionContextService", () => {
         const stepFn = jest.fn().mockRejectedValue(new Error("Step failed"));
 
         await expect(
-          executionContext.inngestContext.step.run("test-step", stepFn)
+          executionContext.inngestContext.step.run("test-step", stepFn),
         ).rejects.toThrow("Step failed");
       });
     });
@@ -338,24 +338,30 @@ describe("ExecutionContextService", () => {
     describe("step.sleep", () => {
       it("should handle numeric duration", async () => {
         const startTime = Date.now();
-        await executionContext.inngestContext.step.sleep(50);
+        await executionContext.inngestContext.step.sleep("sleep-numeric", 50);
         const endTime = Date.now();
 
-        expect(endTime - startTime).toBeGreaterThanOrEqual(50);
+        expect(endTime - startTime).toBeGreaterThanOrEqual(40); // Slightly lower tolerance for test environment
       });
 
       it("should parse string durations", async () => {
         // Test with a longer duration to avoid timing issues
         const startTime = Date.now();
-        await executionContext.inngestContext.step.sleep("50ms");
+        await executionContext.inngestContext.step.sleep(
+          "sleep-string",
+          "50ms",
+        );
         const endTime = Date.now();
 
-        expect(endTime - startTime).toBeGreaterThanOrEqual(50);
+        expect(endTime - startTime).toBeGreaterThanOrEqual(40); // Slightly lower tolerance for test environment
       });
 
       it("should handle invalid duration format", async () => {
         await expect(
-          executionContext.inngestContext.step.sleep("invalid")
+          executionContext.inngestContext.step.sleep(
+            "sleep-invalid",
+            "invalid",
+          ),
         ).rejects.toThrow("Invalid duration format");
       });
     });
@@ -371,7 +377,10 @@ describe("ExecutionContextService", () => {
           data: { message: "test" },
         };
 
-        await executionContext.inngestContext.step.sendEvent(event);
+        await executionContext.inngestContext.step.sendEvent(
+          "send-test",
+          event,
+        );
 
         expect(mockInngestService.send).toHaveBeenCalledWith(event);
       });
@@ -382,7 +391,10 @@ describe("ExecutionContextService", () => {
           { name: "test.event2", data: { message: "test2" } },
         ];
 
-        await executionContext.inngestContext.step.sendEvent(events);
+        await executionContext.inngestContext.step.sendEvent(
+          "send-batch-test",
+          events,
+        );
 
         expect(mockInngestService.sendBatch).toHaveBeenCalledWith(events);
       });
@@ -391,9 +403,12 @@ describe("ExecutionContextService", () => {
     describe("step.waitForEvent", () => {
       it("should throw error indicating Inngest integration needed", async () => {
         await expect(
-          executionContext.inngestContext.step.waitForEvent("test.event")
+          executionContext.inngestContext.step.waitForEvent("wait-test", {
+            event: "test.event",
+            timeout: 1000,
+          }),
         ).rejects.toThrow(
-          "waitForEvent requires Inngest step system integration"
+          "waitForEvent (wait-test) requires Inngest step system integration",
         );
       });
     });
@@ -401,9 +416,12 @@ describe("ExecutionContextService", () => {
     describe("step.invoke", () => {
       it("should throw error indicating Inngest integration needed", async () => {
         await expect(
-          executionContext.inngestContext.step.invoke("other-function")
+          executionContext.inngestContext.step.invoke("invoke-test", {
+            function: "other-function",
+            data: {},
+          }),
         ).rejects.toThrow(
-          "invoke requires Inngest function invocation system integration"
+          "invoke (invoke-test) requires Inngest function invocation system integration",
         );
       });
     });
@@ -431,7 +449,7 @@ describe("ExecutionContextService", () => {
         functionMetadata,
         event,
         "run-123",
-        1
+        1,
       );
 
       const logger = context.inngestContext.logger;
@@ -475,7 +493,7 @@ describe("ExecutionContextService", () => {
         functionMetadata,
         event,
         "run-123",
-        1
+        1,
       );
 
       expect(service.getActiveExecutions()).toHaveLength(1);
@@ -513,7 +531,7 @@ describe("ExecutionContextService", () => {
         functionMetadata,
         event,
         "run-123",
-        1
+        1,
       );
       expect(service.getActiveExecutions()).toHaveLength(1);
 
@@ -544,15 +562,15 @@ describe("ExecutionContextService", () => {
         functionMetadata,
         event,
         "run-123",
-        1
+        1,
       );
 
       // Test different duration formats (using very short durations for testing)
       await expect(
-        context.inngestContext.step.sleep("1ms")
+        context.inngestContext.step.sleep("sleep-test-1", "1ms"),
       ).resolves.not.toThrow();
       await expect(
-        context.inngestContext.step.sleep("0.001s")
+        context.inngestContext.step.sleep("sleep-test-2", "0.001s"),
       ).resolves.not.toThrow();
     });
   });

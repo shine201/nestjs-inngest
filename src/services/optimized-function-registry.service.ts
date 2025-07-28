@@ -32,7 +32,7 @@ interface CachedFunctionDefinition {
 
 /**
  * Optimized registry for managing Inngest functions with performance improvements
- * 
+ *
  * Performance optimizations:
  * 1. Lazy loading and caching of function definitions
  * 2. Bulk operations for batch processing
@@ -43,19 +43,22 @@ interface CachedFunctionDefinition {
 @Injectable()
 export class OptimizedFunctionRegistry implements OnModuleInit {
   private readonly logger = new Logger(OptimizedFunctionRegistry.name);
-  
+
   // Core storage optimized with Maps for O(1) lookups
   private readonly functions = new Map<string, InngestFunctionMetadata>();
   private readonly functionsByClass = new Map<any, Set<string>>(); // Store function IDs for memory efficiency
   private readonly functionsByTrigger = new Map<string, Set<string>>(); // Index by trigger for fast lookups
-  
+
   // Performance caching
-  private readonly functionDefinitionCache = new Map<string, CachedFunctionDefinition>();
+  private readonly functionDefinitionCache = new Map<
+    string,
+    CachedFunctionDefinition
+  >();
   private cachedFunctionsList: InngestFunctionMetadata[] | null = null;
   private cachedStats: RegistryStats | null = null;
   private lastCacheUpdate = 0;
   private readonly CACHE_TTL = 60000; // 1 minute cache TTL
-  
+
   // Performance monitoring
   private discoveryStartTime = 0;
   private registrationTimes = new Map<string, number>();
@@ -64,7 +67,7 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
     private readonly discoveryService: DiscoveryService,
     private readonly metadataScanner: MetadataScanner,
     private readonly moduleRef: ModuleRef,
-    private readonly memoryOptimizer: MemoryOptimizer
+    private readonly memoryOptimizer: MemoryOptimizer,
   ) {}
 
   /**
@@ -73,14 +76,14 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     const startTime = performance.now();
     this.discoveryStartTime = startTime;
-    
+
     await this.discoverFunctions();
-    
+
     const duration = performance.now() - startTime;
     this.logger.log(
-      `Discovered ${this.functions.size} Inngest function(s) in ${duration.toFixed(2)}ms`
+      `Discovered ${this.functions.size} Inngest function(s) in ${duration.toFixed(2)}ms`,
     );
-    
+
     // Precompute commonly used data structures
     await this.precomputeIndexes();
   }
@@ -96,11 +99,13 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
     const batchSize = 50;
     for (let i = 0; i < providers.length; i += batchSize) {
       const batch = providers.slice(i, i + batchSize);
-      await Promise.all(batch.map(wrapper => this.scanProvider(wrapper)));
+      await Promise.all(batch.map((wrapper) => this.scanProvider(wrapper)));
     }
 
     const processingTime = performance.now() - processStartTime;
-    this.logger.debug(`Provider scanning completed in ${processingTime.toFixed(2)}ms`);
+    this.logger.debug(
+      `Provider scanning completed in ${processingTime.toFixed(2)}ms`,
+    );
   }
 
   /**
@@ -113,7 +118,7 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
     }
 
     const { instance, metatype } = wrapper;
-    
+
     // Check if we've already processed this class (for singletons)
     if (this.functionsByClass.has(metatype)) {
       return;
@@ -129,7 +134,7 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
     const registrationStartTime = performance.now();
 
     this.logger.debug(
-      `Found ${functionMetadata.length} Inngest function(s) in ${metatype.name}`
+      `Found ${functionMetadata.length} Inngest function(s) in ${metatype.name}`,
     );
 
     // Initialize class tracking
@@ -148,18 +153,22 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
   private async batchRegisterFunctions(
     instance: any,
     functionMetadata: any[],
-    metatype: any
+    metatype: any,
   ): Promise<void> {
     const classSet = this.functionsByClass.get(metatype)!;
-    
+
     for (const meta of functionMetadata) {
       try {
-        await this.registerFunctionOptimized(instance, meta.propertyKey, meta.config);
+        await this.registerFunctionOptimized(
+          instance,
+          meta.propertyKey,
+          meta.config,
+        );
         classSet.add(meta.config.id);
       } catch (error) {
         this.logger.error(
           `Failed to register function ${meta.config.id} in ${metatype.name}:`,
-          error
+          error,
         );
         throw error;
       }
@@ -172,14 +181,14 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
   async registerFunctionOptimized(
     target: any,
     propertyKey: string,
-    config: InngestFunctionConfig
+    config: InngestFunctionConfig,
   ): Promise<void> {
     // Check for duplicates efficiently
     if (this.functions.has(config.id)) {
       const existing = this.functions.get(config.id)!;
       throw new InngestFunctionError(
         `${ERROR_MESSAGES.DUPLICATE_FUNCTION_ID}: Function ID "${config.id}" is already registered in ${existing.target.constructor.name}.${existing.propertyKey}`,
-        config.id
+        config.id,
       );
     }
 
@@ -188,7 +197,7 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
     if (typeof method !== "function") {
       throw new InngestFunctionError(
         `Method "${propertyKey}" is not a function`,
-        config.id
+        config.id,
       );
     }
 
@@ -201,7 +210,16 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
     metadataObj.config = this.memoryOptimizer.optimizeObject(config);
     metadataObj.handler = boundHandler;
 
-    const metadata: InngestFunctionMetadata = metadataObj;
+    // Create a new metadata object to avoid reference issues
+    const metadata: InngestFunctionMetadata = {
+      target: metadataObj.target,
+      propertyKey: metadataObj.propertyKey,
+      config: metadataObj.config,
+      handler: metadataObj.handler,
+    };
+
+    // Release the pool object
+    this.memoryOptimizer.releaseMetadataObject(metadataObj);
 
     // Register function
     this.functions.set(config.id, metadata);
@@ -213,7 +231,7 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
     this.invalidateCache();
 
     this.logger.debug(
-      `Registered Inngest function: ${config.id} (${target.constructor.name}.${propertyKey})`
+      `Registered Inngest function: ${config.id} (${target.constructor.name}.${propertyKey})`,
     );
   }
 
@@ -223,10 +241,10 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
   private updateTriggerIndexes(config: InngestFunctionConfig): void {
     for (const trigger of config.triggers) {
       let triggerKey: string;
-      
-      if ('event' in trigger) {
+
+      if ("event" in trigger) {
         triggerKey = `event:${trigger.event}`;
-      } else if ('cron' in trigger) {
+      } else if ("cron" in trigger) {
         triggerKey = `cron:${trigger.cron}`;
       } else {
         continue;
@@ -249,7 +267,7 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
 
     this.cachedFunctionsList = Array.from(this.functions.values());
     this.lastCacheUpdate = Date.now();
-    
+
     return this.cachedFunctionsList;
   }
 
@@ -266,7 +284,7 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
   getFunctionsByEvent(eventName: string): InngestFunctionMetadata[] {
     const triggerKey = `event:${eventName}`;
     const functionIds = this.functionsByTrigger.get(triggerKey);
-    
+
     if (!functionIds) {
       return [];
     }
@@ -288,7 +306,7 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
   getFunctionsByCron(cronExpression: string): InngestFunctionMetadata[] {
     const triggerKey = `cron:${cronExpression}`;
     const functionIds = this.functionsByTrigger.get(triggerKey);
-    
+
     if (!functionIds) {
       return [];
     }
@@ -355,7 +373,7 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
     for (const [id, metadata] of this.functions.entries()) {
       // Check if we have a cached definition
       const cached = this.functionDefinitionCache.get(id);
-      
+
       if (cached && currentTime - cached.lastAccessed < this.CACHE_TTL) {
         cached.lastAccessed = currentTime;
         inngestFunctions.push(cached.definition);
@@ -364,24 +382,24 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
 
       try {
         const definition = this.createInngestFunctionOptimized(metadata);
-        
+
         // Cache the definition
         this.functionDefinitionCache.set(id, {
           definition,
           metadata,
           lastAccessed: currentTime,
         });
-        
+
         inngestFunctions.push(definition);
       } catch (error) {
         this.logger.error(
           `Failed to create Inngest function for "${id}":`,
-          error
+          error,
         );
         throw new InngestFunctionError(
           `Failed to create Inngest function for "${id}"`,
           id,
-          error as Error
+          error as Error,
         );
       }
     }
@@ -395,7 +413,9 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
   /**
    * Optimized function definition creation with object reuse
    */
-  private createInngestFunctionOptimized(metadata: InngestFunctionMetadata): any {
+  private createInngestFunctionOptimized(
+    metadata: InngestFunctionMetadata,
+  ): any {
     const { config, handler } = metadata;
 
     // Pre-validated handler check
@@ -409,7 +429,9 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
       name: config.name,
       triggers: this.optimizeTriggersFormat(config.triggers),
       handler,
-      ...(config.concurrency !== undefined && { concurrency: config.concurrency }),
+      ...(config.concurrency !== undefined && {
+        concurrency: config.concurrency,
+      }),
       ...(config.rateLimit !== undefined && { rateLimit: config.rateLimit }),
       ...(config.retries !== undefined && { retries: config.retries }),
       ...(config.timeout !== undefined && { timeout: config.timeout }),
@@ -445,24 +467,26 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
 
     // Batch validation
     const validationPromises: Promise<void>[] = [];
-    
+
     for (const [id, metadata] of this.functions.entries()) {
       validationPromises.push(
         this.validateSingleFunction(id, metadata).catch((error) => {
           errors.push(error.message);
-        })
+        }),
       );
     }
 
     // Wait for all validations to complete
     Promise.all(validationPromises).then(() => {
       const validationTime = performance.now() - startTime;
-      this.logger.debug(`Function validation completed in ${validationTime.toFixed(2)}ms`);
+      this.logger.debug(
+        `Function validation completed in ${validationTime.toFixed(2)}ms`,
+      );
 
       if (errors.length > 0) {
         throw new InngestFunctionError(
           `Function validation failed:\n${errors.join("\n")}`,
-          "validation"
+          "validation",
         );
       }
     });
@@ -471,7 +495,10 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
   /**
    * Validates a single function
    */
-  private async validateSingleFunction(id: string, metadata: InngestFunctionMetadata): Promise<void> {
+  private async validateSingleFunction(
+    id: string,
+    metadata: InngestFunctionMetadata,
+  ): Promise<void> {
     if (typeof metadata.handler !== "function") {
       throw new Error(`Function "${id}": Handler is not a function`);
     }
@@ -494,7 +521,7 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
     }
 
     const startTime = performance.now();
-    
+
     const stats: RegistryStats = {
       totalFunctions: this.functions.size,
       functionsByTriggerType: new Map(),
@@ -505,19 +532,22 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
 
     // Efficiently count by trigger types
     for (const triggerKey of this.functionsByTrigger.keys()) {
-      const [triggerType] = triggerKey.split(':');
+      const [triggerType] = triggerKey.split(":");
       const currentCount = stats.functionsByTriggerType.get(triggerType) || 0;
       stats.functionsByTriggerType.set(triggerType, currentCount + 1);
     }
 
     // Count by class
-    for (const [classConstructor, functionIds] of this.functionsByClass.entries()) {
+    for (const [
+      classConstructor,
+      functionIds,
+    ] of this.functionsByClass.entries()) {
       const className = classConstructor.name;
       stats.functionsByClass.set(className, functionIds.size);
     }
 
     stats.discoveryDuration = performance.now() - startTime;
-    
+
     this.cachedStats = stats;
     this.lastCacheUpdate = Date.now();
 
@@ -531,8 +561,8 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
     // Precompute commonly accessed data
     this.getFunctions(); // Populate cache
     this.getStats(); // Populate stats cache
-    
-    this.logger.debug('Precomputation completed');
+
+    this.logger.debug("Precomputation completed");
   }
 
   /**
@@ -569,7 +599,9 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
     }
 
     if (staleEntries.length > 0) {
-      this.logger.debug(`Cleaned up ${staleEntries.length} stale cache entries`);
+      this.logger.debug(
+        `Cleaned up ${staleEntries.length} stale cache entries`,
+      );
     }
   }
 
@@ -587,7 +619,7 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
     const cacheHitRate = totalFunctions > 0 ? cacheEntries / totalFunctions : 0;
 
     // Estimate memory usage
-    const estimatedMemoryUsage = 
+    const estimatedMemoryUsage =
       this.functions.size * 1000 + // Approximate metadata size
       this.functionDefinitionCache.size * 500 + // Approximate cache entry size
       this.functionsByTrigger.size * 100; // Approximate index size
@@ -605,7 +637,7 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
    */
   bulkGetFunctions(ids: string[]): InngestFunctionMetadata[] {
     const functions: InngestFunctionMetadata[] = [];
-    
+
     for (const id of ids) {
       const metadata = this.functions.get(id);
       if (metadata) {
@@ -631,7 +663,7 @@ export class OptimizedFunctionRegistry implements OnModuleInit {
     this.functionDefinitionCache.clear();
     this.invalidateCache();
     this.registrationTimes.clear();
-    
+
     this.logger.debug("Optimized function registry cleared");
   }
 }

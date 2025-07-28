@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { InngestEvent } from '../../interfaces/inngest-event.interface';
+import { Injectable } from "@nestjs/common";
+import { InngestEvent } from "../../interfaces/inngest-event.interface";
 
 /**
  * Mock implementation of InngestService for testing
@@ -14,8 +14,9 @@ export class MockInngestService {
    * Mock send single event
    */
   async send(event: InngestEvent): Promise<void> {
+    // Call mock first - if it throws, event won't be recorded
+    await this.sendEventMock(event);
     this.sentEvents.push(event);
-    this.sendEventMock(event);
     return Promise.resolve();
   }
 
@@ -23,8 +24,9 @@ export class MockInngestService {
    * Mock send multiple events
    */
   async sendEvents(events: InngestEvent[]): Promise<void> {
+    // Call mock first - if it throws, events won't be recorded
+    await this.sendEventsMock(events);
     this.sentEvents.push(...events);
-    this.sendEventsMock(events);
     return Promise.resolve();
   }
 
@@ -39,7 +41,7 @@ export class MockInngestService {
    * Get events filtered by name
    */
   getSentEventsByName(name: string): InngestEvent[] {
-    return this.sentEvents.filter(event => event.name === name);
+    return this.sentEvents.filter((event) => event.name === name);
   }
 
   /**
@@ -78,12 +80,12 @@ export class MockInngestService {
    */
   mockSendDelay(delay: number): void {
     this.sendEventMock.mockImplementation(async (event: InngestEvent) => {
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
       this.sentEvents.push(event);
     });
 
     this.sendEventsMock.mockImplementation(async (events: InngestEvent[]) => {
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
       this.sentEvents.push(...events);
     });
   }
@@ -95,7 +97,7 @@ export class MockInngestService {
     this.sendEventMock.mockReset();
     this.sendEventsMock.mockReset();
     this.clearSentEvents();
-    
+
     // Restore default behavior
     this.sendEventMock.mockImplementation((event: InngestEvent) => {
       this.sentEvents.push(event);
@@ -116,8 +118,8 @@ export class MockInngestService {
     expect(matchingEvents.length).toBeGreaterThan(0);
 
     if (eventData) {
-      const matchingEvent = matchingEvents.find(event => 
-        JSON.stringify(event.data) === JSON.stringify(eventData)
+      const matchingEvent = matchingEvents.find(
+        (event) => JSON.stringify(event.data) === JSON.stringify(eventData),
       );
       expect(matchingEvent).toBeDefined();
     }

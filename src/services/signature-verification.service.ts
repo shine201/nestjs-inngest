@@ -35,25 +35,33 @@ export class SignatureVerificationService {
    */
   async verifyWebhookSignature(
     request: Request,
-    config: SignatureVerificationConfig
+    config: SignatureVerificationConfig,
   ): Promise<void> {
     // Skip verification in development mode if configured to do so
     if (DevelopmentMode.shouldDisableSignatureVerification()) {
-      DevelopmentMode.log('Signature verification disabled in development mode');
+      DevelopmentMode.log(
+        "Signature verification disabled in development mode",
+      );
       return;
     }
 
     if (!config.signingKey) {
       this.logger.warn(
-        "No signing key provided - skipping signature verification"
+        "No signing key provided - skipping signature verification",
       );
       return;
     }
 
-    try {
-      // Extract signature from headers
-      const signatureHeader = this.extractSignatureHeader(request);
+    // Check if signature header exists before proceeding
+    const signatureHeader = request.headers["x-inngest-signature"] as string;
+    if (!signatureHeader) {
+      throw new InngestWebhookError(
+        "Missing signature header (x-inngest-signature)",
+        401,
+      );
+    }
 
+    try {
       // Parse signature components
       const parsedSignature = this.parseSignatureHeader(signatureHeader);
 
@@ -78,7 +86,7 @@ export class SignatureVerificationService {
           error instanceof Error ? error.message : String(error)
         }`,
         401,
-        error as Error
+        error as Error,
       );
     }
   }
@@ -92,7 +100,7 @@ export class SignatureVerificationService {
     if (!signatureHeader) {
       throw new InngestWebhookError(
         "Missing signature header (x-inngest-signature)",
-        401
+        401,
       );
     }
 
@@ -139,7 +147,7 @@ export class SignatureVerificationService {
           error instanceof Error ? error.message : String(error)
         }`,
         401,
-        error as Error
+        error as Error,
       );
     }
   }
@@ -149,7 +157,7 @@ export class SignatureVerificationService {
    */
   private verifyTimestamp(
     timestamp: number,
-    toleranceSeconds: number = this.DEFAULT_TOLERANCE_SECONDS
+    toleranceSeconds: number = this.DEFAULT_TOLERANCE_SECONDS,
   ): void {
     const now = Math.floor(Date.now() / 1000);
     const timeDiff = Math.abs(now - timestamp);
@@ -158,7 +166,7 @@ export class SignatureVerificationService {
       throw new InngestWebhookError(
         `Request timestamp too old or too far in the future. ` +
           `Difference: ${timeDiff}s, Tolerance: ${toleranceSeconds}s`,
-        401
+        401,
       );
     }
 
@@ -182,7 +190,7 @@ export class SignatureVerificationService {
     // Fallback to JSON stringification (not ideal for signature verification)
     this.logger.warn(
       "Raw body not available, using JSON.stringify as fallback. " +
-        "Consider using raw body middleware for better security."
+        "Consider using raw body middleware for better security.",
     );
 
     return JSON.stringify(request.body);
@@ -194,7 +202,7 @@ export class SignatureVerificationService {
   private async verifySignature(
     body: string,
     parsedSignature: ParsedSignature,
-    signingKey: string
+    signingKey: string,
   ): Promise<void> {
     try {
       const crypto = await import("crypto");
@@ -211,7 +219,7 @@ export class SignatureVerificationService {
       // Convert signatures to buffers for timing-safe comparison
       const providedSignatureBuffer = Buffer.from(
         parsedSignature.signature,
-        "hex"
+        "hex",
       );
       const expectedSignatureBuffer = Buffer.from(expectedSignature, "hex");
 
@@ -223,7 +231,7 @@ export class SignatureVerificationService {
       // Perform timing-safe comparison
       const isValid = crypto.timingSafeEqual(
         providedSignatureBuffer,
-        expectedSignatureBuffer
+        expectedSignatureBuffer,
       );
 
       if (!isValid) {
@@ -238,7 +246,7 @@ export class SignatureVerificationService {
       ) {
         throw new InngestWebhookError(
           ERROR_MESSAGES.SIGNATURE_VERIFICATION_FAILED,
-          401
+          401,
         );
       }
 
@@ -247,7 +255,7 @@ export class SignatureVerificationService {
           error instanceof Error ? error.message : String(error)
         }`,
         401,
-        error as Error
+        error as Error,
       );
     }
   }
@@ -258,7 +266,7 @@ export class SignatureVerificationService {
   async createTestSignature(
     body: string,
     signingKey: string,
-    timestamp?: number
+    timestamp?: number,
   ): Promise<string> {
     const crypto = await import("crypto");
     const ts = timestamp || Math.floor(Date.now() / 1000);
@@ -282,7 +290,7 @@ export class SignatureVerificationService {
 
     if (config.signingKey.length < 32) {
       this.logger.warn(
-        "Signing key appears to be too short for secure verification"
+        "Signing key appears to be too short for secure verification",
       );
     }
 
@@ -292,7 +300,7 @@ export class SignatureVerificationService {
 
     if (config.toleranceSeconds && config.toleranceSeconds > 3600) {
       this.logger.warn(
-        "Tolerance seconds is very high (>1 hour), consider reducing for better security"
+        "Tolerance seconds is very high (>1 hour), consider reducing for better security",
       );
     }
   }

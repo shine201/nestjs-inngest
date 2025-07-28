@@ -13,7 +13,7 @@ describe("Error Classes", () => {
       const error = new InngestConfigError(
         "Test config error",
         "testField",
-        "testValue"
+        "testValue",
       );
 
       expect(error.message).toBe("Test config error");
@@ -40,7 +40,7 @@ describe("Error Classes", () => {
       const error = new InngestFunctionError(
         "Function error",
         "test-function",
-        originalError
+        originalError,
       );
 
       expect(error.message).toBe("Function error");
@@ -57,7 +57,7 @@ describe("Error Classes", () => {
       const error = new InngestEventError(
         "Event error",
         "test.event",
-        originalError
+        originalError,
       );
 
       expect(error.message).toBe("Event error");
@@ -74,7 +74,7 @@ describe("Error Classes", () => {
       const error = new InngestWebhookError(
         "Webhook error",
         400,
-        originalError
+        originalError,
       );
 
       expect(error.message).toBe("Webhook error");
@@ -92,7 +92,7 @@ describe("Error Classes", () => {
         "Runtime error",
         "test-function",
         "run-123",
-        originalError
+        originalError,
       );
 
       expect(error.message).toBe("Runtime error");

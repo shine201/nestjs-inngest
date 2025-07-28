@@ -4,7 +4,9 @@ import { ContextIdFactory, REQUEST } from "@nestjs/core";
 import {
   InngestFunctionContext,
   InngestFunctionMetadata,
+  StepTools,
 } from "../interfaces/inngest-function.interface";
+import { StepOptionsOrId } from "inngest";
 import { InngestEvent } from "../interfaces/inngest-event.interface";
 import { InngestRuntimeError } from "../errors";
 import { DevelopmentMode } from "../utils/development-mode";
@@ -61,7 +63,7 @@ export class ExecutionContextService {
     functionMetadata: InngestFunctionMetadata,
     event: InngestEvent,
     runId: string,
-    attempt: number = 1
+    attempt: number = 1,
   ): Promise<ExecutionContext> {
     const executionId = `${functionMetadata.config.id}-${runId}-${attempt}`;
 
@@ -77,7 +79,7 @@ export class ExecutionContextService {
           attempt,
           functionId: functionMetadata.config.id,
         },
-        contextId
+        contextId,
       );
 
       // Create step tools with dependency injection support
@@ -87,7 +89,7 @@ export class ExecutionContextService {
       const contextLogger = this.createContextLogger(
         functionMetadata.config.id,
         runId,
-        attempt
+        attempt,
       );
 
       // Create Inngest function context
@@ -117,24 +119,24 @@ export class ExecutionContextService {
         functionMetadata.config.id,
         runId,
         event,
-        'start'
+        "start",
       );
 
       this.logger.debug(
-        `Created execution context for function ${functionMetadata.config.id} (${executionId})`
+        `Created execution context for function ${functionMetadata.config.id} (${executionId})`,
       );
 
       return executionContext;
     } catch (error) {
       this.logger.error(
         `Failed to create execution context for function ${functionMetadata.config.id}:`,
-        error
+        error,
       );
       throw new InngestRuntimeError(
         "Failed to create execution context",
         functionMetadata.config.id,
         runId,
-        error as Error
+        error as Error,
       );
     }
   }
@@ -148,22 +150,27 @@ export class ExecutionContextService {
 
     try {
       this.logger.debug(
-        `Executing function ${functionMetadata.config.id} (${executionId})`
+        `Executing function ${functionMetadata.config.id} (${executionId})`,
       );
 
       // Get the target instance with proper scoping
       const targetInstance = await this.getTargetInstance(
         functionMetadata.target.constructor,
-        contextId
+        contextId,
       );
 
       // Bind the method to the scoped instance
       const boundMethod =
         targetInstance[functionMetadata.propertyKey].bind(targetInstance);
 
-      // Execute the function
+      // Execute the function with proper Inngest signature (event, { step, ... })
       const startTime = Date.now();
-      const result = await boundMethod(inngestContext);
+      const result = await boundMethod(inngestContext.event, {
+        step: inngestContext.step,
+        logger: inngestContext.logger,
+        runId: inngestContext.runId,
+        attempt: inngestContext.attempt,
+      });
       const duration = Date.now() - startTime;
 
       // Log function execution completion in development mode
@@ -171,12 +178,12 @@ export class ExecutionContextService {
         functionMetadata.config.id,
         inngestContext.runId,
         inngestContext.event,
-        'complete',
-        { result, duration }
+        "complete",
+        { result, duration },
       );
 
       this.logger.debug(
-        `Function ${functionMetadata.config.id} completed in ${duration}ms (${executionId})`
+        `Function ${functionMetadata.config.id} completed in ${duration}ms (${executionId})`,
       );
 
       return result;
@@ -186,27 +193,30 @@ export class ExecutionContextService {
         functionMetadata.config.id,
         inngestContext.runId,
         inngestContext.event,
-        'error',
-        { error }
+        "error",
+        { error },
       );
 
       this.logger.error(
         `Function ${functionMetadata.config.id} failed (${executionId}):`,
-        error
+        error,
       );
-      
+
       // Enhance error with development context
-      const enhancedError = DevelopmentMode.enhanceErrorForDevelopment(error as Error, {
-        functionId: functionMetadata.config.id,
-        runId: inngestContext.runId,
-      });
-      
+      const enhancedError = DevelopmentMode.enhanceErrorForDevelopment(
+        error as Error,
+        {
+          functionId: functionMetadata.config.id,
+          runId: inngestContext.runId,
+        },
+      );
+
       const errorMessage = enhancedError.message;
       throw new InngestRuntimeError(
         `Function execution failed: ${errorMessage}`,
         functionMetadata.config.id,
         inngestContext.runId,
-        enhancedError
+        enhancedError,
       );
     } finally {
       // Clean up execution context
@@ -219,7 +229,7 @@ export class ExecutionContextService {
    */
   private async getTargetInstance(
     targetClass: any,
-    contextId: any
+    contextId: any,
   ): Promise<any> {
     try {
       // Try to get the instance with the context ID (for scoped providers)
@@ -236,7 +246,7 @@ export class ExecutionContextService {
             ? fallbackError.message
             : String(fallbackError);
         throw new Error(
-          `Failed to resolve target instance: ${errorMessage}. Fallback error: ${fallbackErrorMessage}`
+          `Failed to resolve target instance: ${errorMessage}. Fallback error: ${fallbackErrorMessage}`,
         );
       }
     }
@@ -244,78 +254,224 @@ export class ExecutionContextService {
 
   /**
    * Creates step tools with dependency injection support
+   * Implements official Inngest step tools interface with proper typing
    */
   private createStepTools(
     contextId: any,
-    functionMetadata: InngestFunctionMetadata
-  ): any {
+    functionMetadata: InngestFunctionMetadata,
+  ): StepTools {
     return {
-      run: async <T>(id: string, fn: () => Promise<T> | T): Promise<T> => {
+      run: async <TFn extends (...args: any[]) => unknown>(
+        idOrOptions: StepOptionsOrId,
+        fn: TFn,
+        ...input: Parameters<TFn>
+      ) => {
+        const stepId =
+          typeof idOrOptions === "string"
+            ? idOrOptions
+            : idOrOptions.id || "step";
         this.logger.debug(
-          `Executing step "${id}" in function ${functionMetadata.config.id}`
+          `Executing step "${stepId}" in function ${functionMetadata.config.id}`,
         );
         try {
-          const result = await fn();
-          this.logger.debug(`Step "${id}" completed successfully`);
+          const result = await fn(...input);
+          this.logger.debug(`Step "${stepId}" completed successfully`);
           return result;
         } catch (error) {
-          this.logger.error(`Step "${id}" failed:`, error);
+          this.logger.error(`Step "${stepId}" failed:`, error);
           throw error;
         }
       },
 
-      sleep: async (duration: string | number): Promise<void> => {
-        const ms =
-          typeof duration === "string"
-            ? this.parseDuration(duration)
-            : duration;
+      sleep: async (
+        idOrOptions: StepOptionsOrId,
+        time: number | string,
+      ): Promise<void> => {
+        const stepId =
+          typeof idOrOptions === "string"
+            ? idOrOptions
+            : idOrOptions.id || "sleep";
+        const ms = typeof time === "string" ? this.parseDuration(time) : time;
+
         this.logger.debug(
-          `Sleeping for ${ms}ms in function ${functionMetadata.config.id}`
+          `Sleeping for ${ms}ms in step "${stepId}" for function ${functionMetadata.config.id}`,
+        );
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      },
+
+      sleepUntil: async (
+        idOrOptions: StepOptionsOrId,
+        time: Date | string,
+      ): Promise<void> => {
+        const stepId =
+          typeof idOrOptions === "string"
+            ? idOrOptions
+            : idOrOptions.id || "sleepUntil";
+        const targetTime = typeof time === "string" ? new Date(time) : time;
+        const now = new Date();
+        const ms = Math.max(0, targetTime.getTime() - now.getTime());
+
+        this.logger.debug(
+          `Sleeping until ${targetTime.toISOString()} (${ms}ms) in step "${stepId}"`,
         );
         return new Promise((resolve) => setTimeout(resolve, ms));
       },
 
       waitForEvent: async (
-        event: string,
-        options?: { timeout?: string | number; if?: string }
-      ): Promise<InngestEvent> => {
-        // This would typically integrate with Inngest's step system
-        // For now, we'll throw an error indicating this needs Inngest integration
+        idOrOptions: StepOptionsOrId,
+        opts: any,
+      ): Promise<any> => {
+        const stepId =
+          typeof idOrOptions === "string"
+            ? idOrOptions
+            : idOrOptions.id || "waitForEvent";
         throw new Error(
-          "waitForEvent requires Inngest step system integration"
+          `waitForEvent (${stepId}) requires Inngest step system integration`,
         );
       },
 
       sendEvent: async (
-        event: InngestEvent | InngestEvent[]
-      ): Promise<void> => {
-        // Get InngestService with proper scoping
+        idOrOptions: StepOptionsOrId,
+        payload: any,
+      ): Promise<any> => {
+        const stepId =
+          typeof idOrOptions === "string"
+            ? idOrOptions
+            : idOrOptions.id || "sendEvent";
         try {
           const { InngestService } = await import("./inngest.service");
           const inngestService = await this.moduleRef.resolve(
             InngestService,
-            contextId
+            contextId,
           );
 
-          if (Array.isArray(event)) {
-            await inngestService.sendBatch(event);
+          if (Array.isArray(payload)) {
+            await inngestService.sendBatch(payload);
           } else {
-            await inngestService.send(event);
+            await inngestService.send(payload);
           }
+
+          return {
+            ids: Array.isArray(payload)
+              ? payload.map((p) => p.id || "no-id")
+              : [payload.id || "no-id"],
+          };
         } catch (error) {
-          this.logger.error("Failed to send event from step:", error);
+          this.logger.error(
+            `Failed to send event from step "${stepId}":`,
+            error,
+          );
           throw error;
         }
       },
 
-      invoke: async <T>(functionId: string, data?: any): Promise<T> => {
-        // This would typically integrate with Inngest's function invocation system
-        // For now, we'll throw an error indicating this needs Inngest integration
+      invoke: async (idOrOptions: StepOptionsOrId, opts: any): Promise<any> => {
+        const stepId =
+          typeof idOrOptions === "string"
+            ? idOrOptions
+            : idOrOptions.id || "invoke";
         throw new Error(
-          "invoke requires Inngest function invocation system integration"
+          `invoke (${stepId}) requires Inngest function invocation system integration`,
         );
       },
-    };
+
+      waitForSignal: async (
+        idOrOptions: StepOptionsOrId,
+        opts: any,
+      ): Promise<any> => {
+        const stepId =
+          typeof idOrOptions === "string"
+            ? idOrOptions
+            : idOrOptions.id || "waitForSignal";
+        throw new Error(
+          `waitForSignal (${stepId}) requires Inngest step system integration`,
+        );
+      },
+
+      sendSignal: async (
+        idOrOptions: StepOptionsOrId,
+        opts: any,
+      ): Promise<any> => {
+        const stepId =
+          typeof idOrOptions === "string"
+            ? idOrOptions
+            : idOrOptions.id || "sendSignal";
+        throw new Error(
+          `sendSignal (${stepId}) requires Inngest step system integration`,
+        );
+      },
+
+      fetch: async (
+        idOrOptions: StepOptionsOrId,
+        ...args: Parameters<typeof fetch>
+      ): Promise<Response> => {
+        const stepId =
+          typeof idOrOptions === "string"
+            ? idOrOptions
+            : idOrOptions.id || "fetch";
+        this.logger.debug(`Making fetch request in step "${stepId}"`);
+
+        try {
+          const response = await fetch(...args);
+          this.logger.debug(
+            `Fetch completed in step "${stepId}" with status ${response.status}`,
+          );
+          return response;
+        } catch (error) {
+          this.logger.error(`Fetch failed in step "${stepId}":`, error);
+          throw error;
+        }
+      },
+
+      ai: {
+        infer: async (
+          idOrOptions: StepOptionsOrId,
+          options: any,
+        ): Promise<any> => {
+          const stepId =
+            typeof idOrOptions === "string"
+              ? idOrOptions
+              : idOrOptions.id || "ai.infer";
+          throw new Error(
+            `ai.infer (${stepId}) requires Inngest AI integration`,
+          );
+        },
+        wrap: async (
+          idOrOptions: StepOptionsOrId,
+          fn: any,
+          ...input: any[]
+        ): Promise<any> => {
+          const stepId =
+            typeof idOrOptions === "string"
+              ? idOrOptions
+              : idOrOptions.id || "ai.wrap";
+          throw new Error(
+            `ai.wrap (${stepId}) requires Inngest AI integration`,
+          );
+        },
+        models: {
+          anthropic: (() => {
+            throw new Error(
+              "ai.models.anthropic requires Inngest AI integration",
+            );
+          }) as any,
+          gemini: (() => {
+            throw new Error("ai.models.gemini requires Inngest AI integration");
+          }) as any,
+          openai: (() => {
+            throw new Error("ai.models.openai requires Inngest AI integration");
+          }) as any,
+          deepseek: (() => {
+            throw new Error(
+              "ai.models.deepseek requires Inngest AI integration",
+            );
+          }) as any,
+          grok: (() => {
+            throw new Error("ai.models.grok requires Inngest AI integration");
+          }) as any,
+        },
+      },
+    } as StepTools;
   }
 
   /**
@@ -324,7 +480,7 @@ export class ExecutionContextService {
   private createContextLogger(
     functionId: string,
     runId: string,
-    attempt: number
+    attempt: number,
   ): any {
     const contextPrefix = `[${functionId}:${runId}:${attempt}]`;
 

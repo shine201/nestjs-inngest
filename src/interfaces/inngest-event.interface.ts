@@ -52,7 +52,7 @@ export type EventData<T extends InngestEvent> = T["data"];
  */
 export type TypedEvent<
   TName extends string,
-  TData = any
+  TData = any,
 > = InngestEvent<TData> & {
   name: TName;
 };
@@ -82,7 +82,7 @@ export interface DefaultEventRegistry extends EventRegistry {
  */
 export type RegistryEvent<
   TRegistry extends EventRegistry = DefaultEventRegistry,
-  TName extends keyof TRegistry = keyof TRegistry
+  TName extends keyof TRegistry = keyof TRegistry,
 > = TName extends string ? TypedEvent<TName, TRegistry[TName]> : never;
 
 /**
@@ -96,7 +96,7 @@ export type EventNames<TRegistry extends EventRegistry = DefaultEventRegistry> =
  */
 export type EventDataType<
   TRegistry extends EventRegistry = DefaultEventRegistry,
-  TName extends EventNames<TRegistry> = EventNames<TRegistry>
+  TName extends EventNames<TRegistry> = EventNames<TRegistry>,
 > = TRegistry[TName];
 
 /**
@@ -104,7 +104,7 @@ export type EventDataType<
  */
 export type CreateEvent<
   TRegistry extends EventRegistry = DefaultEventRegistry,
-  TName extends EventNames<TRegistry> = EventNames<TRegistry>
+  TName extends EventNames<TRegistry> = EventNames<TRegistry>,
 > = {
   name: TName;
   data: EventDataType<TRegistry, TName>;
@@ -143,7 +143,7 @@ export interface EventValidationSchema<TData = any> {
  * Event schema registry for validation
  */
 export type EventSchemaRegistry<
-  TRegistry extends EventRegistry = DefaultEventRegistry
+  TRegistry extends EventRegistry = DefaultEventRegistry,
 > = {
   [K in EventNames<TRegistry>]?: EventValidationSchema<
     EventDataType<TRegistry, K>
@@ -154,7 +154,7 @@ export type EventSchemaRegistry<
  * Batch of events for bulk sending
  */
 export type InngestEventBatch<
-  TRegistry extends EventRegistry = DefaultEventRegistry
+  TRegistry extends EventRegistry = DefaultEventRegistry,
 > = RegistryEvent<TRegistry>[];
 
 /**
@@ -162,7 +162,7 @@ export type InngestEventBatch<
  */
 export interface TypedEventContext<
   TRegistry extends EventRegistry = DefaultEventRegistry,
-  TName extends EventNames<TRegistry> = EventNames<TRegistry>
+  TName extends EventNames<TRegistry> = EventNames<TRegistry>,
 > {
   event: RegistryEvent<TRegistry, TName>;
   runId: string;
@@ -174,7 +174,7 @@ export interface TypedEventContext<
  */
 export interface TypedEventTrigger<
   TRegistry extends EventRegistry = DefaultEventRegistry,
-  TName extends EventNames<TRegistry> = EventNames<TRegistry>
+  TName extends EventNames<TRegistry> = EventNames<TRegistry>,
 > {
   event: TName;
   if?: string;
@@ -193,5 +193,5 @@ export interface CronTrigger {
  * Union of all trigger types
  */
 export type FunctionTrigger<
-  TRegistry extends EventRegistry = DefaultEventRegistry
+  TRegistry extends EventRegistry = DefaultEventRegistry,
 > = TypedEventTrigger<TRegistry> | CronTrigger;

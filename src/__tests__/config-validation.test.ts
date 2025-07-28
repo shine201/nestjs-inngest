@@ -39,7 +39,7 @@ describe("Config Validation", () => {
       const result = validateConfig(config);
       expect(result.isValid).toBe(false);
       expect(
-        result.errors.some((e) => e.message === ERROR_MESSAGES.INVALID_APP_ID)
+        result.errors.some((e) => e.message === ERROR_MESSAGES.INVALID_APP_ID),
       ).toBe(true);
     });
 
@@ -62,7 +62,9 @@ describe("Config Validation", () => {
       const result = validateConfig(config);
       expect(result.isValid).toBe(false);
       expect(
-        result.errors.some((e) => e.message === ERROR_MESSAGES.INVALID_ENDPOINT)
+        result.errors.some(
+          (e) => e.message === ERROR_MESSAGES.INVALID_ENDPOINT,
+        ),
       ).toBe(true);
     });
 
@@ -75,7 +77,7 @@ describe("Config Validation", () => {
       const result = validateConfig(config);
       expect(result.isValid).toBe(false);
       expect(
-        result.errors.some((e) => e.message === ERROR_MESSAGES.INVALID_TIMEOUT)
+        result.errors.some((e) => e.message === ERROR_MESSAGES.INVALID_TIMEOUT),
       ).toBe(true);
     });
 
@@ -89,8 +91,8 @@ describe("Config Validation", () => {
       expect(result.isValid).toBe(false);
       expect(
         result.errors.some(
-          (e) => e.message === ERROR_MESSAGES.INVALID_MAX_BATCH_SIZE
-        )
+          (e) => e.message === ERROR_MESSAGES.INVALID_MAX_BATCH_SIZE,
+        ),
       ).toBe(true);
     });
 
@@ -104,8 +106,8 @@ describe("Config Validation", () => {
       expect(result.isValid).toBe(false);
       expect(
         result.errors.some(
-          (e) => e.message === ERROR_MESSAGES.INVALID_ENVIRONMENT
-        )
+          (e) => e.message === ERROR_MESSAGES.INVALID_ENVIRONMENT,
+        ),
       ).toBe(true);
     });
 
@@ -188,7 +190,7 @@ describe("Config Validation", () => {
       const error = new ConfigValidationError(
         "Test error",
         "testField",
-        "testValue"
+        "testValue",
       );
 
       expect(error.message).toBe("Test error");
