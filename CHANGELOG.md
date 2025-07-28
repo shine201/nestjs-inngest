@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2025-07-29
+
+### 🐛 Bug Fixes
+
+#### Endpoint Configuration Fix
+- **Fixed hardcoded controller path**: Resolved issue where `@Controller("/api/inngest")` was hardcoded, preventing custom endpoint configuration from working
+- **Dynamic controller path**: Implemented `Reflect.defineMetadata` to dynamically set controller paths based on configuration
+- **Testing module support**: Updated `InngestTestingModule` to support dynamic endpoint configuration
+
+#### Test State Pollution Fix
+- **Global state isolation**: Fixed `DevelopmentMode` singleton causing test failures due to shared state
+- **Added reset functionality**: Implemented `DevelopmentMode.reset()` method for test isolation
+- **Production-like testing**: Fixed issue where tests with `isDev: false` were overridden by global development mode settings
+
+### 🔧 Improvements
+- **Enhanced ESLint configuration**: Updated to ESLint 9.x with modern `eslint.config.js` format
+- **Better type safety**: Added proper null checks and optional chaining for `DevelopmentMode` configuration
+- **Test coverage**: Added comprehensive tests for endpoint configuration functionality
+
+### 📚 Documentation
+- **Updated llm.txt**: Enhanced AI-readable documentation with latest features and API changes
+
+## [1.1.1] - 2025-07-28
+
+### 🔧 Improvements
+- **Repository links**: Fixed GitHub repository URLs in package.json
+- **Documentation updates**: Updated package metadata and documentation links
+
 ## [1.1.0] - 2025-07-27
 
 ### 🚀 Major Features

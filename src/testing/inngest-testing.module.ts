@@ -155,6 +155,11 @@ export class InngestTestingModule {
     // Controller (optional)
     const controllers = includeController ? [InngestController] : [];
 
+    // Set the controller path dynamically using metadata (for testing)
+    if (includeController) {
+      Reflect.defineMetadata("path", defaultConfig.endpoint, InngestController);
+    }
+
     const allProviders = [
       ...coreProviders,
       ...serviceProviders,

@@ -70,7 +70,7 @@ interface InngestWebhookRequest {
 /**
  * Controller for handling Inngest webhooks with enhanced security
  */
-@Controller("/api/inngest")
+@Controller()
 export class InngestController {
   private readonly logger: EnhancedLogger;
   private readonly loggerFactory = new LoggerFactory();

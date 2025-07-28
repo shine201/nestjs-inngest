@@ -10,6 +10,7 @@
 ## ✨ Features
 
 ### Core Features
+
 - 🚀 **Seamless NestJS Integration** - Native dependency injection and NestJS patterns
 - 🔒 **Type Safety** - Full TypeScript support with typed event definitions and handlers
 - 🎯 **Decorator-Based** - Simple `@InngestFunction` and `@TypedInngestFunction` decorators
@@ -18,6 +19,7 @@
 - 🧪 **Comprehensive Testing** - Advanced testing utilities and mock services
 
 ### Performance & Enterprise Features ⚡
+
 - 🏎️ **Connection Pooling** - Optimized HTTP connection management with circuit breakers
 - 🧠 **Memory Optimization** - Advanced memory management with object pooling and WeakRef caching
 - 📊 **Request Optimization** - Batching, compression, and intelligent caching
@@ -26,6 +28,7 @@
 - 🛡️ **Circuit Breakers** - Resilient error handling and automatic recovery
 
 ### Developer Experience
+
 - 🔍 **Development Mode** - Enhanced debugging with detailed logging
 - 📝 **Validation & Error Reporting** - Comprehensive input validation and error handling
 - 🎨 **Enhanced Logging** - Structured logging with performance metrics
@@ -83,7 +86,11 @@ Use the `@InngestFunction` decorator to define serverless functions:
 
 ```typescript
 import { Injectable } from "@nestjs/common";
-import { InngestFunction, TypedInngestFunction, InngestFunctionContext } from "nestjs-inngest";
+import {
+  InngestFunction,
+  TypedInngestFunction,
+  InngestFunctionContext,
+} from "nestjs-inngest";
 
 @Injectable()
 export class UserService {
@@ -92,7 +99,10 @@ export class UserService {
     name: "User Welcome Flow",
     triggers: [{ event: "user.created" }],
   })
-  async handleUserCreated(event: MyEventTypes["user.created"], { step, logger, runId, attempt }: InngestFunctionContext) {
+  async handleUserCreated(
+    event: MyEventTypes["user.created"],
+    { step, logger, runId, attempt }: InngestFunctionContext
+  ) {
     const { userId, email, name } = event.data;
 
     // Step 1: Create user profile
@@ -204,27 +214,26 @@ InngestModule.forRoot({
   timeout: 30000,
   maxBatchSize: 100,
 
-  // Performance optimization features (v2.0+)
   performance: {
     enableConnectionPooling: true,
     enableMemoryOptimization: true,
     enableRequestOptimization: true,
     enablePerformanceMonitoring: true,
-    
+
     // Connection pool settings
     connectionPool: {
       maxSockets: 50,
       keepAlive: true,
       maxFreeSockets: 10,
     },
-    
+
     // Memory optimization
     memoryOptimization: {
       enableObjectPooling: true,
       enableStringInterning: true,
       gcThreshold: 500 * 1024 * 1024, // 500MB
     },
-    
+
     // Request optimization
     requestOptimization: {
       enableCompression: true,
@@ -255,7 +264,7 @@ InngestModule.forRoot({
     level: "debug",
     includePerformanceMetrics: true,
   },
-  
+
   strict: false,
 });
 ```
@@ -272,19 +281,19 @@ export class OrderService {
   constructor(private readonly inngestService: InngestService) {}
 
   @InngestFunction({
-    id: 'process-high-volume-orders',
-    triggers: [{ event: 'orders.batch' }],
+    id: "process-high-volume-orders",
+    triggers: [{ event: "orders.batch" }],
     // Automatic connection pooling handles high concurrency
   })
   async processOrders(event: any, { step }: any) {
     // Connection pool automatically manages HTTP connections
     // Circuit breaker protects against external service failures
     const results = await Promise.all(
-      event.data.orders.map(order => 
+      event.data.orders.map((order) =>
         step.run(`process-${order.id}`, () => this.processOrder(order))
       )
     );
-    
+
     return results;
   }
 }
@@ -298,8 +307,8 @@ Advanced memory management with object pooling and WeakRef caching:
 @Injectable()
 export class DataProcessor {
   @InngestFunction({
-    id: 'memory-optimized-processing',
-    triggers: [{ event: 'data.process' }],
+    id: "memory-optimized-processing",
+    triggers: [{ event: "data.process" }],
   })
   async processData(event: any, { step }: any) {
     // Memory optimizer automatically:
@@ -307,11 +316,11 @@ export class DataProcessor {
     // - Interns strings for deduplication
     // - Manages garbage collection
     // - Monitors memory usage
-    
-    const result = await step.run('process-large-dataset', async () => {
+
+    const result = await step.run("process-large-dataset", async () => {
       return this.processLargeDataset(event.data);
     });
-    
+
     return result;
   }
 }
@@ -324,20 +333,22 @@ Built-in performance monitoring and analytics:
 ```typescript
 @Injectable()
 export class MonitoringService {
-  constructor(private readonly performanceService: PerformanceIntegrationService) {}
+  constructor(
+    private readonly performanceService: PerformanceIntegrationService
+  ) {}
 
-  @Cron('0 */5 * * * *') // Every 5 minutes
+  @Cron("0 */5 * * * *") // Every 5 minutes
   async checkPerformanceHealth() {
     const stats = this.performanceService.getComprehensiveStats();
-    
-    console.log('Performance Stats:', {
+
+    console.log("Performance Stats:", {
       memory: stats.memory.current.heapUsed,
       network: stats.network.connectionPool.averageResponseTime,
       health: stats.system.overallHealth, // 'excellent' | 'good' | 'warning' | 'critical'
     });
-    
+
     // Auto-optimization based on metrics
-    if (stats.system.overallHealth === 'warning') {
+    if (stats.system.overallHealth === "warning") {
       await this.performanceService.forceOptimization();
     }
   }
@@ -352,8 +363,8 @@ Intelligent request batching, compression, and caching:
 @Injectable()
 export class ApiService {
   @InngestFunction({
-    id: 'optimized-api-calls',
-    triggers: [{ event: 'api.batch_request' }],
+    id: "optimized-api-calls",
+    triggers: [{ event: "api.batch_request" }],
   })
   async handleBatchRequests(event: any, { step }: any) {
     // Request optimizer automatically:
@@ -361,11 +372,11 @@ export class ApiService {
     // - Compresses request/response data
     // - Caches frequently accessed data
     // - Optimizes retry strategies
-    
-    const results = await step.run('batch-api-calls', async () => {
+
+    const results = await step.run("batch-api-calls", async () => {
       return this.makeBatchedApiCalls(event.data.requests);
     });
-    
+
     return results;
   }
 }
@@ -777,6 +788,7 @@ npm run start:dev
 ```
 
 **Features demonstrated:**
+
 - 🛒 **Order Processing Pipeline** - Complete order lifecycle management
 - 💳 **Payment Integration** - Multi-provider payment processing with retries
 - 📦 **Inventory Management** - Stock checking, reservation, and backorder workflows

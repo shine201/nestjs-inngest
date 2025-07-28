@@ -57,8 +57,16 @@ export interface DevelopmentModeConfig {
  */
 export class DevelopmentMode {
   private static logger = new Logger(DevelopmentMode.name);
-  private static config: DevelopmentModeConfig;
+  private static config: DevelopmentModeConfig | undefined;
   private static isInitialized = false;
+
+  /**
+   * Reset development mode state (useful for testing)
+   */
+  static reset(): void {
+    this.config = undefined;
+    this.isInitialized = false;
+  }
 
   /**
    * Initialize development mode with configuration
@@ -114,14 +122,14 @@ export class DevelopmentMode {
    * Check if verbose logging is enabled
    */
   static isVerboseLoggingEnabled(): boolean {
-    return this.isEnabled() && this.config.verboseLogging === true;
+    return this.isEnabled() && this.config?.verboseLogging === true;
   }
 
   /**
    * Check if external calls should be mocked
    */
   static shouldMockExternalCalls(): boolean {
-    return this.isEnabled() && this.config.mockExternalCalls === true;
+    return this.isEnabled() && this.config?.mockExternalCalls === true;
   }
 
   /**
@@ -129,7 +137,7 @@ export class DevelopmentMode {
    */
   static shouldDisableSignatureVerification(): boolean {
     return (
-      this.isEnabled() && this.config.disableSignatureVerification === true
+      this.isEnabled() && this.config?.disableSignatureVerification === true
     );
   }
 
@@ -137,21 +145,21 @@ export class DevelopmentMode {
    * Check if introspection is enabled
    */
   static isIntrospectionEnabled(): boolean {
-    return this.isEnabled() && this.config.enableIntrospection === true;
+    return this.isEnabled() && this.config?.enableIntrospection === true;
   }
 
   /**
    * Check if step debugging is enabled
    */
   static isStepDebuggingEnabled(): boolean {
-    return this.isEnabled() && this.config.enableStepDebugging === true;
+    return this.isEnabled() && this.config?.enableStepDebugging === true;
   }
 
   /**
    * Get development timeout or fall back to provided timeout
    */
   static getTimeout(defaultTimeout: number): number {
-    if (this.isEnabled() && this.config.developmentTimeout) {
+    if (this.isEnabled() && this.config?.developmentTimeout) {
       return this.config.developmentTimeout;
     }
     return defaultTimeout;
@@ -312,14 +320,14 @@ export class DevelopmentMode {
 
     return {
       enabled: true,
-      verboseLogging: this.config.verboseLogging || false,
-      mockExternalCalls: this.config.mockExternalCalls || false,
+      verboseLogging: this.config?.verboseLogging || false,
+      mockExternalCalls: this.config?.mockExternalCalls || false,
       disableSignatureVerification:
-        this.config.disableSignatureVerification || false,
-      enableIntrospection: this.config.enableIntrospection || false,
-      enableStepDebugging: this.config.enableStepDebugging || false,
-      localWebhookUrl: this.config.localWebhookUrl || null,
-      developmentTimeout: this.config.developmentTimeout || null,
+        this.config?.disableSignatureVerification || false,
+      enableIntrospection: this.config?.enableIntrospection || false,
+      enableStepDebugging: this.config?.enableStepDebugging || false,
+      localWebhookUrl: this.config?.localWebhookUrl || null,
+      developmentTimeout: this.config?.developmentTimeout || null,
     };
   }
 
@@ -361,23 +369,24 @@ export class DevelopmentMode {
     const devConfig = { ...config };
 
     // Apply development timeout
-    if (this.config.developmentTimeout) {
+    if (this.config?.developmentTimeout) {
       devConfig.timeout = this.config.developmentTimeout;
     }
 
     // Apply development-specific settings
-    if (this.config.disableSignatureVerification) {
-      // Mark that signature verification should be skipped
+    if (this.config?.disableSignatureVerification) {
+      // When signature verification is disabled, we need to enable dev mode
+      devConfig.isDev = true;
+    } else if (config.isDev !== false) {
+      // Only override isDev if it wasn't explicitly set to false and we're not forcing it
       devConfig.isDev = true;
     }
-
-    // Enable development mode flag
-    devConfig.isDev = true;
 
     this.log("Applied development configuration", {
       originalTimeout: config.timeout,
       developmentTimeout: devConfig.timeout,
-      isDev: devConfig.isDev,
+      originalIsDev: config.isDev,
+      finalIsDev: devConfig.isDev,
     });
 
     return devConfig;

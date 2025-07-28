@@ -16,6 +16,7 @@ import {
 import { InngestFunction } from "../../decorators/inngest-function.decorator";
 import { INNGEST_CONFIG } from "../../constants";
 import { validateAndMergeConfig } from "../../utils/config-validation";
+import { DevelopmentMode } from "../../utils/development-mode";
 
 // Test service for module integration
 @Injectable()
@@ -199,6 +200,8 @@ describe("Module Initialization Integration Tests", () => {
     let config: any;
 
     beforeAll(async () => {
+      // Reset DevelopmentMode state to avoid interference from other tests
+      DevelopmentMode.reset();
       module = await Test.createTestingModule({
         imports: [
           InngestModule.forRootAsync({

@@ -69,6 +69,9 @@ export class InngestModule {
       useValue: finalConfig,
     };
 
+    // Set the controller path dynamically using metadata
+    Reflect.defineMetadata("path", finalConfig.endpoint, InngestController);
+
     return {
       module: InngestModule,
       imports: [DiscoveryModule],
@@ -114,12 +117,19 @@ export class InngestModule {
    * @returns A configured dynamic module
    */
   static forRootAsync(options: InngestModuleAsyncOptions): DynamicModule {
+    // Create a dynamic controller class that will be configured at runtime
+    const DynamicInngestController = class extends InngestController {};
+
     return {
       module: InngestModule,
       imports: [DiscoveryModule, ...(options.imports || [])],
-      controllers: [InngestController],
+      controllers: [DynamicInngestController],
       providers: [
         ...this.createAsyncProviders(options),
+        {
+          provide: InngestController,
+          useClass: DynamicInngestController,
+        },
         InngestService,
         FunctionRegistry,
         ExecutionContextService,
@@ -192,7 +202,17 @@ export class InngestModule {
             throw validation.errors[0];
           }
 
-          return mergedConfig;
+          // Apply development mode settings to configuration
+          const finalConfig = DevelopmentMode.applyToConfig(mergedConfig);
+
+          // Set the controller path dynamically using metadata
+          Reflect.defineMetadata(
+            "path",
+            finalConfig.endpoint,
+            InngestController,
+          );
+
+          return finalConfig;
         },
         inject: options.inject || [],
       };
@@ -209,7 +229,13 @@ export class InngestModule {
           throw validation.errors[0];
         }
 
-        return mergedConfig;
+        // Apply development mode settings to configuration
+        const finalConfig = DevelopmentMode.applyToConfig(mergedConfig);
+
+        // Set the controller path dynamically using metadata
+        Reflect.defineMetadata("path", finalConfig.endpoint, InngestController);
+
+        return finalConfig;
       },
       inject: [options.useClass || options.useExisting!],
     };
