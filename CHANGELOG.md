@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2025-07-29
+
+### 🐛 Bug Fixes
+
+#### Package Export Issues
+- **Fixed incomplete module exports**: Resolved issue where many utility and service modules were not included in the compiled package
+- **Complete utils export**: All utility modules now properly exported (connection-pool, memory-optimizer, request-optimizer, etc.)
+- **Complete services export**: All service modules now properly exported (enhanced-logger, optimized-function-registry, performance-integration, etc.)
+- **Complete decorators export**: All decorator modules now properly exported (optimized-inngest-function, typed-inngest-function, etc.)
+- **Added testing module exports**: Testing utilities and mocks now properly exported for external use
+
+#### TypeScript Compilation Issues  
+- **Fixed iterator compilation errors**: Updated TypeScript target from ES2020 to ES2022 to resolve Map/Set iterator issues
+- **Resolved decorator conflicts**: Fixed naming conflicts between different decorator exports
+- **Enhanced type compatibility**: Improved compatibility with modern JavaScript features
+
+### 🔧 Improvements
+- **Better package structure**: All modules now correctly compiled and available in distributed package
+- **Enhanced TypeScript support**: Updated compilation target for better modern JavaScript feature support
+- **Complete API surface**: Users now have access to all advanced features and utilities
+
+### 📦 Package Changes
+- **File count**: Increased from 2 to 42 compiled JavaScript files in distribution
+- **Module availability**: All performance optimization, testing, and utility modules now accessible
+- **Better tree-shaking**: Improved module structure for better bundler optimization
+
 ## [1.1.2] - 2025-07-29
 
 ### 🐛 Bug Fixes

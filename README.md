@@ -5,7 +5,7 @@
 [![npm version](https://badge.fury.io/js/nestjs-inngest.svg)](https://badge.fury.io/js/nestjs-inngest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
-[![Test Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)](https://github.com/shine201/nestjs-inngest)
+[![Test Coverage](https://img.shields.io/badge/coverage-82.6%25-green.svg)](https://github.com/shine201/nestjs-inngest)
 
 ## ✨ Features
 

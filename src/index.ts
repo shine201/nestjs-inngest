@@ -2,17 +2,13 @@
 export { InngestModule } from "./inngest.module";
 
 // Services
-export { InngestService } from "./services/inngest.service";
-export { FunctionRegistry } from "./services/function-registry.service";
-export { ExecutionContextService } from "./services/execution-context.service";
-export { ScopeManagerService } from "./services/scope-manager.service";
-export { SignatureVerificationService } from "./services/signature-verification.service";
+export * from "./services";
 
 // Controllers
 export { InngestController } from "./controllers/inngest.controller";
 
 // Decorators
-export { InngestFunction } from "./decorators/inngest-function.decorator";
+export * from "./decorators";
 
 // Interfaces
 export * from "./interfaces";
@@ -24,8 +20,7 @@ export { INNGEST_CONFIG } from "./constants";
 export * from "./errors";
 
 // Utils
-export {
-  validateConfig,
-  mergeWithDefaults,
-  validateAndMergeConfig,
-} from "./utils/config-validation";
+export * from "./utils";
+
+// Testing
+export * from "./testing";

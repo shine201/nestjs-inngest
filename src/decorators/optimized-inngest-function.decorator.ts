@@ -423,5 +423,5 @@ export function deserializeMetadataFromCache(
   }
 }
 
-// Export the optimized decorator as the main decorator for backward compatibility
-export { OptimizedInngestFunction as InngestFunction };
+// Note: OptimizedInngestFunction is available as a separate decorator
+// Use InngestFunction from inngest-function.decorator for standard usage
