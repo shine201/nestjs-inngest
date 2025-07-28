@@ -1,0 +1,665 @@
+# NestJS Inngest Integration - AI/LLM Reference
+
+> **Repository**: https://github.com/shine201/nestjs-inngest  
+> **Package**: `nestjs-inngest@1.1.1` on npm  
+> **License**: MIT  
+
+## Project Overview
+
+**nestjs-inngest** is an advanced NestJS integration for Inngest (serverless event-driven functions platform) with enterprise-grade features including performance optimizations, type safety, comprehensive testing support, and production-ready capabilities.
+
+## Key Features
+
+### Core Integration
+- **Seamless NestJS Integration**: Native dependency injection and NestJS patterns
+- **Type Safety**: Full TypeScript support with typed event definitions and handlers  
+- **Decorator-Based**: Simple `@InngestFunction` and `@TypedInngestFunction` decorators
+- **Automatic Discovery**: Zero-config function registration and discovery
+- **Webhook Support**: Built-in webhook handling with signature verification
+
+### Performance & Enterprise Features (v2.0+)
+- **Connection Pooling**: Optimized HTTP connection management with circuit breakers
+- **Memory Optimization**: Advanced memory management with object pooling and WeakRef caching
+- **Request Optimization**: Batching, compression, and intelligent caching
+- **Performance Monitoring**: Real-time metrics and health monitoring
+- **Auto-Optimization**: Intelligent performance tuning based on usage patterns
+- **Circuit Breakers**: Resilient error handling and automatic recovery
+
+### Developer Experience
+- **Development Mode**: Enhanced debugging with detailed logging
+- **Validation & Error Reporting**: Comprehensive input validation and error handling
+- **Enhanced Logging**: Structured logging with performance metrics
+- **Comprehensive Testing**: Advanced testing utilities and mock services
+
+## Installation & Setup
+
+```bash
+npm install nestjs-inngest inngest
+```
+
+```typescript
+// app.module.ts
+@Module({
+  imports: [
+    InngestModule.forRoot({
+      appId: "my-nestjs-app",
+      signingKey: process.env.INNGEST_SIGNING_KEY,
+      eventKey: process.env.INNGEST_EVENT_KEY,
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+## Core API Components
+
+### 1. Main Decorators
+
+#### @InngestFunction(config)
+Marks a method as an Inngest function for automatic registration.
+
+```typescript
+@Injectable()
+export class UserService {
+  @InngestFunction({
+    id: 'user-welcome',
+    name: 'User Welcome Flow',
+    triggers: [{ event: 'user.created' }],
+    retries: 3,
+    timeout: 30000,
+  })
+  async handleUserCreated(event: InngestEvent, context: InngestFunctionContext) {
+    // Function implementation
+  }
+}
+```
+
+#### @TypedInngestFunction<EventTypes>(config)
+Type-safe version with compile-time event type checking.
+
+```typescript
+type MyEvents = EventTypes<{
+  'user.created': { userId: string; email: string; name: string };
+  'order.placed': { orderId: string; userId: string; total: number };
+}>;
+
+@TypedInngestFunction<MyEvents>({
+  id: 'typed-handler',
+  triggers: [{ event: 'user.created' }],
+})
+async handleUserCreated(
+  event: MyEvents['user.created'],
+  context: InngestFunctionContext
+) {
+  // event.data is automatically typed
+}
+```
+
+### 2. Core Services
+
+#### InngestService
+Main service for sending events and accessing the Inngest client.
+
+```typescript
+@Injectable()
+export class AuthService {
+  constructor(private readonly inngestService: InngestService) {}
+
+  async createUser(userData: any) {
+    const user = await this.userRepository.save(userData);
+    
+    // Send single event
+    await this.inngestService.send({
+      name: "user.created",
+      data: { userId: user.id, email: user.email, name: user.name },
+    });
+
+    // Send multiple events
+    await this.inngestService.send([
+      { name: "user.created", data: { userId: user.id } },
+      { name: "analytics.track", data: { event: "user_signup" } },
+    ]);
+
+    return user;
+  }
+}
+```
+
+### 3. Function Context & Step Tools
+
+Every Inngest function receives two parameters:
+1. **event**: The triggering event with typed data
+2. **context**: Contains step tools, logger, runId, and attempt number
+
+```typescript
+@InngestFunction({
+  id: 'complex-workflow',
+  triggers: [{ event: 'workflow.start' }],
+})
+async handleComplexWorkflow(
+  event: InngestEvent<{ workflowId: string }>,
+  { step, logger, runId, attempt }: InngestFunctionContext
+) {
+  // Step execution (retryable, resumable)
+  const data = await step.run('fetch-data', async () => {
+    return this.fetchExternalData(event.data.workflowId);
+  });
+
+  // Sleep/delay
+  await step.sleep('wait-processing', '5 minutes');
+
+  // Wait for external event
+  const approval = await step.waitForEvent('approval.received', {
+    timeout: '24 hours',
+    if: `async.data.workflowId == "${event.data.workflowId}"`,
+  });
+
+  // Send events from within function
+  await step.sendEvent({
+    name: 'workflow.completed',
+    data: { workflowId: event.data.workflowId, result: data },
+  });
+
+  // Invoke other functions
+  const result = await step.invoke('process-data', { data });
+
+  return result;
+}
+```
+
+## Configuration Options
+
+### Basic Configuration
+```typescript
+InngestModule.forRoot({
+  appId: "my-app",              // Required: App identifier
+  signingKey: "your-key",       // Required: For webhook verification
+  eventKey: "your-event-key",   // Required: For sending events
+  endpoint: "/api/inngest",     // Optional: Webhook endpoint path
+  env: "production",            // Optional: Environment
+  timeout: 30000,               // Optional: Function timeout in ms
+})
+```
+
+### Advanced Configuration with Performance Features
+```typescript
+InngestModule.forRoot({
+  appId: "my-app",
+  signingKey: process.env.INNGEST_SIGNING_KEY,
+  eventKey: process.env.INNGEST_EVENT_KEY,
+
+  // Performance optimization features (v2.0+)
+  performance: {
+    enableConnectionPooling: true,
+    enableMemoryOptimization: true,
+    enableRequestOptimization: true,
+    enablePerformanceMonitoring: true,
+    
+    // Connection pool settings
+    connectionPool: {
+      maxSockets: 50,
+      keepAlive: true,
+      maxFreeSockets: 10,
+    },
+    
+    // Memory optimization
+    memoryOptimization: {
+      enableObjectPooling: true,
+      enableStringInterning: true,
+      gcThreshold: 500 * 1024 * 1024, // 500MB
+    },
+    
+    // Request optimization
+    requestOptimization: {
+      enableCompression: true,
+      enableCaching: true,
+      enableBatching: true,
+      cacheSize: 1000,
+    },
+  },
+
+  // Retry configuration
+  retry: {
+    maxAttempts: 3,
+    backoff: "exponential",
+    initialDelay: 1000,
+    maxDelay: 30000,
+  },
+
+  // Development settings
+  development: {
+    enabled: process.env.NODE_ENV === "development",
+    disableSignatureVerification: true,
+    enablePerformanceDebugging: true,
+  },
+
+  // Enhanced logging
+  logger: {
+    enabled: true,
+    level: "debug",
+    includePerformanceMetrics: true,
+  },
+})
+```
+
+### Async Configuration
+```typescript
+InngestModule.forRootAsync({
+  imports: [ConfigModule],
+  useFactory: async (configService: ConfigService) => ({
+    appId: configService.get("INNGEST_APP_ID"),
+    signingKey: configService.get("INNGEST_SIGNING_KEY"),
+    eventKey: configService.get("INNGEST_EVENT_KEY"),
+    env: configService.get("NODE_ENV"),
+  }),
+  inject: [ConfigService],
+})
+```
+
+## Key Interfaces & Types
+
+### InngestEvent<T>
+```typescript
+interface InngestEvent<T = any> {
+  name: string;                     // Required: Event name
+  data: T;                          // Required: Event data
+  id?: string;                      // Optional: Event ID
+  ts?: number;                      // Optional: Timestamp
+  user?: { id: string; [key: string]: any }; // Optional: User context
+  v?: string;                       // Optional: Version
+}
+```
+
+### InngestFunctionConfig
+```typescript
+interface InngestFunctionConfig {
+  id: string;                       // Required: Unique function ID
+  name?: string;                    // Human-readable name
+  triggers: InngestTrigger[];       // Array of triggers
+  concurrency?: number | ConcurrencyConfig; // Concurrency limits
+  rateLimit?: RateLimit;            // Rate limiting config
+  retries?: number;                 // Number of retries
+  timeout?: number;                 // Function timeout in ms
+}
+```
+
+### InngestFunctionContext<T>
+```typescript
+interface InngestFunctionContext<T = any> {
+  step: StepTools;                  // Step execution tools
+  logger: Logger;                   // Logger instance
+  runId: string;                    // Function run ID
+  attempt: number;                  // Execution attempt number
+}
+```
+
+### StepTools
+```typescript
+interface StepTools {
+  run<T>(id: string, fn: () => Promise<T> | T): Promise<T>;
+  sleep(duration: string | number): Promise<void>;
+  waitForEvent(
+    event: string,
+    options?: { timeout?: string | number; if?: string }
+  ): Promise<InngestEvent>;
+  sendEvent(event: InngestEvent | InngestEvent[]): Promise<void>;
+  invoke<T>(functionId: string, data?: any): Promise<T>;
+}
+```
+
+## Common Patterns & Best Practices
+
+### 1. Event Design Patterns
+```typescript
+// Define typed events
+type AppEvents = EventTypes<{
+  'user.registered': {
+    userId: string;
+    email: string;
+    name: string;
+    registrationSource: 'web' | 'mobile' | 'api';
+    timestamp: string;
+  };
+  'order.created': {
+    orderId: string;
+    userId: string;
+    items: Array<{ productId: string; quantity: number; price: number }>;
+    total: number;
+    currency: string;
+    timestamp: string;
+  };
+}>;
+```
+
+### 2. Centralized Event Publishing
+```typescript
+@Injectable()
+export class EventPublisher {
+  constructor(private readonly inngestService: InngestService) {}
+
+  async publishUserRegistered(user: User, source: string) {
+    const event: AppEvents['user.registered'] = {
+      name: 'user.registered',
+      data: {
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+        registrationSource: source as any,
+        timestamp: new Date().toISOString(),
+      },
+      id: `user-registered-${user.id}-${Date.now()}`,
+      user: { id: user.id },
+    };
+
+    await this.inngestService.send(event);
+  }
+}
+```
+
+### 3. Complex Workflow with Error Handling
+```typescript
+@Injectable()
+export class OrderService {
+  @InngestFunction({
+    id: 'process-order-workflow',
+    name: 'Process Order Workflow',
+    triggers: [{ event: 'order.created' }],
+    timeout: 300000, // 5 minutes
+    retries: 3,
+  })
+  async processOrderWorkflow(
+    event: InngestEvent<OrderCreatedData>,
+    { step }: InngestFunctionContext
+  ) {
+    const { orderId, userId, items, total } = event.data;
+
+    // Step 1: Validate order
+    const order = await step.run('validate-order', async () => {
+      const order = await this.orderRepository.findById(orderId);
+      if (!order) throw new Error('Order not found');
+      return order;
+    });
+
+    // Step 2: Check inventory
+    const inventoryCheck = await step.run('check-inventory', async () => {
+      return this.inventoryService.checkAvailability(items);
+    });
+
+    if (!inventoryCheck.available) {
+      await step.run('handle-out-of-stock', async () => {
+        await this.orderService.markOutOfStock(orderId);
+        await step.sendEvent({
+          name: 'order.out-of-stock',
+          data: { orderId, userId, missingItems: inventoryCheck.missing },
+        });
+      });
+      return { status: 'out-of-stock' };
+    }
+
+    // Step 3: Process payment
+    const payment = await step.run('process-payment', async () => {
+      return this.paymentService.processPayment(orderId, total);
+    });
+
+    if (!payment.success) {
+      await step.run('handle-payment-failure', async () => {
+        await this.orderService.markPaymentFailed(orderId);
+        await step.sendEvent({
+          name: 'order.payment-failed',
+          data: { orderId, userId, reason: payment.error },
+        });
+      });
+      return { status: 'payment-failed' };
+    }
+
+    // Step 4: Confirm order
+    await step.run('confirm-order', async () => {
+      return this.orderService.confirm(orderId);
+    });
+
+    return { status: 'confirmed', paymentId: payment.id };
+  }
+}
+```
+
+### 4. Scheduled Functions
+```typescript
+@Injectable()
+export class MaintenanceService {
+  @InngestFunction({
+    id: 'daily-cleanup',
+    name: 'Daily Cleanup Task',
+    triggers: [{ cron: '0 2 * * *' }], // Daily at 2 AM
+  })
+  async dailyCleanup(event: any, { step }: InngestFunctionContext) {
+    await step.run('cleanup-temp-files', async () => {
+      return this.fileService.cleanupTemporaryFiles();
+    });
+
+    await step.run('cleanup-expired-sessions', async () => {
+      return this.sessionService.cleanupExpiredSessions();
+    });
+
+    const stats = await step.run('generate-stats', async () => {
+      return this.analyticsService.generateDailyStats();
+    });
+
+    await step.run('send-report', async () => {
+      return this.reportService.sendDailyReport(stats);
+    });
+  }
+}
+```
+
+### 5. Performance Optimization Patterns
+```typescript
+@Injectable()
+export class HighVolumeService {
+  @InngestFunction({
+    id: 'process-high-volume-data',
+    name: 'Process High Volume Data',
+    triggers: [{ event: 'data.bulk-process' }],
+    concurrency: { limit: 10, key: 'data.processing' }, // Limit concurrent executions
+  })
+  async processHighVolumeData(
+    event: InngestEvent<{ batchId: string; items: any[] }>,
+    { step }: InngestFunctionContext
+  ) {
+    const { batchId, items } = event.data;
+
+    // Process in smaller chunks to avoid memory issues
+    const chunkSize = 100;
+    const results = [];
+
+    for (let i = 0; i < items.length; i += chunkSize) {
+      const chunk = items.slice(i, i + chunkSize);
+      
+      const chunkResult = await step.run(`process-chunk-${i}`, async () => {
+        return this.processChunk(chunk);
+      });
+
+      results.push(chunkResult);
+
+      // Add delay between chunks to avoid overwhelming external services
+      if (i + chunkSize < items.length) {
+        await step.sleep('wait-between-chunks', '1s');
+      }
+    }
+
+    return { batchId, processedCount: items.length, chunks: results.length };
+  }
+}
+```
+
+## Testing Support
+
+### Unit Testing
+```typescript
+import { Test } from "@nestjs/testing";
+import { InngestTestingModule, InngestTestUtils } from "nestjs-inngest";
+
+describe("UserService", () => {
+  let service: UserService;
+
+  beforeEach(async () => {
+    const module = await Test.createTestingModule({
+      imports: [
+        InngestTestingModule.forTest({
+          useRealServices: false,
+          mockConfig: { appId: "test-app", signingKey: "test-key" },
+        }),
+      ],
+      providers: [UserService],
+    }).compile();
+
+    service = module.get<UserService>(UserService);
+  });
+
+  it("should handle user creation", async () => {
+    const event = InngestTestUtils.createTestEvent("user.created", {
+      userId: "123",
+      email: "test@example.com",
+    });
+
+    const mockContext = InngestTestUtils.createMockExecutionContext(
+      "my-function",
+      "test-run",
+      event
+    );
+
+    const result = await service.handleUserCreated(event, mockContext);
+    expect(result.success).toBe(true);
+  });
+});
+```
+
+### Integration Testing
+```typescript
+describe("Integration Tests", () => {
+  let app: INestApplication;
+
+  beforeEach(async () => {
+    const module = await Test.createTestingModule({
+      imports: [
+        InngestTestingModule.forIntegrationTest({
+          useRealServices: true,
+          includeController: true,
+        }),
+      ],
+    }).compile();
+
+    app = module.createNestApplication();
+    await app.init();
+  });
+
+  it("should handle webhook requests", async () => {
+    const event = InngestTestUtils.createTestEvent("test.event", {
+      message: "Hello, World!",
+    });
+
+    const webhookRequest = InngestTestUtils.createTestWebhookRequest(
+      "my-function-id",
+      event
+    );
+
+    const response = await request(app.getHttpServer())
+      .post("/api/inngest")
+      .send(webhookRequest)
+      .expect(200);
+
+    expect(response.body.status).toBe("ok");
+  });
+});
+```
+
+## Error Handling & Production Considerations
+
+### Error Types
+- **InngestError**: Base error class
+- **InngestConfigError**: Configuration issues
+- **InngestEventError**: Event-related issues
+- **InngestFunctionError**: Function-related issues
+- **InngestWebhookError**: Webhook-related issues
+- **InngestRuntimeError**: Function execution errors
+- **InngestTimeoutError**: Function timeout errors
+- **InngestRetryError**: Retry exhaustion errors
+
+### Production Setup
+```typescript
+// Health monitoring
+@Injectable()
+export class MonitoringService {
+  @InngestFunction({
+    id: 'health-check',
+    triggers: [{ cron: '*/5 * * * *' }], // Every 5 minutes
+  })
+  async performHealthCheck(event: any, { step, logger }: InngestFunctionContext) {
+    // Database health check
+    const dbHealth = await step.run('check-database', async () => {
+      try {
+        await this.databaseService.ping();
+        return { status: 'healthy' };
+      } catch (error) {
+        return { status: 'unhealthy', error: error.message };
+      }
+    });
+
+    // Alert if unhealthy
+    if (dbHealth.status === 'unhealthy') {
+      await step.run('send-alert', async () => {
+        await this.alertService.sendHealthAlert(dbHealth);
+      });
+    }
+
+    return { timestamp: new Date().toISOString(), status: dbHealth.status };
+  }
+}
+```
+
+## Migration & Compatibility
+
+### From Direct Inngest Usage
+```typescript
+// Before: Direct Inngest usage
+import { Inngest } from "inngest";
+const inngest = new Inngest({ id: "my-app" });
+export const myFunction = inngest.createFunction(
+  { id: "my-function" },
+  { event: "user.created" },
+  async ({ event, step }) => {
+    // Function logic
+  }
+);
+
+// After: NestJS integration
+@Injectable()
+export class MyService {
+  @InngestFunction({
+    id: "my-function",
+    triggers: [{ event: "user.created" }],
+  })
+  async myFunction(event: any, { step }: any) {
+    // Function logic with full NestJS DI support
+  }
+}
+```
+
+## Examples & Use Cases
+
+The repository includes comprehensive examples:
+- **Basic Example**: Simple event handling and function registration
+- **E-commerce Example**: Complex saga patterns, payment processing, inventory management
+- **Performance Examples**: High-volume data processing, connection pooling, memory optimization
+
+## Key Benefits for AI/LLM Understanding
+
+1. **Type Safety**: Full TypeScript support ensures compile-time validation
+2. **Decorator Pattern**: Clean, declarative function definitions
+3. **Step Functions**: Reliable, resumable workflows with automatic retries
+4. **Testing Support**: Comprehensive mocking and testing utilities
+5. **Performance Features**: Enterprise-grade optimizations for production use
+6. **NestJS Integration**: Seamless dependency injection and module system
+7. **Event-Driven Architecture**: Clean separation of concerns through events
+8. **Error Handling**: Robust error handling with circuit breakers and retries
+
+This library enables building reliable, scalable, event-driven applications in NestJS with the power of Inngest's serverless function platform, while maintaining type safety and developer productivity.
