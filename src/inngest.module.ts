@@ -1,5 +1,5 @@
 import "reflect-metadata"
-import { DynamicModule, Module, Provider } from "@nestjs/common";
+import { DynamicModule, Global, Module, Provider } from "@nestjs/common";
 import { DiscoveryModule, DiscoveryService, ModulesContainer, MetadataScanner, ModuleRef } from "@nestjs/core";
 
 import {
@@ -31,6 +31,7 @@ import {
  * This module provides all the necessary services and controllers
  * to integrate Inngest with a NestJS application.
  */
+@Global()
 @Module({})
 export class InngestModule {
   /**

@@ -267,11 +267,45 @@ export class FunctionRegistry implements OnModuleInit {
       );
     });
 
+    // Create a wrapper handler that uses ExecutionContextService
+    const wrappedHandler = async (event: any, ctx: any) => {
+      try {
+        this.logger.debug(`🔍 Raw event for ${config.id}:`, JSON.stringify(event, null, 2));
+        this.logger.debug(`🔍 Raw ctx for ${config.id}:`, JSON.stringify(ctx, null, 2));
+        
+        // Get ExecutionContextService from the module
+        const { ExecutionContextService } = await import("./execution-context.service");
+        const executionContextService = this.moduleRef.get(ExecutionContextService);
+
+        // Create execution context
+        // Extract the actual event from the Inngest payload
+        const actualEvent = event.event || event; // Handle both formats
+        const runId = event.runId || ctx?.runId || `run-${Date.now()}`;
+        const attempt = event.attempt !== undefined ? event.attempt + 1 : (ctx?.attempt || 1);
+        
+        this.logger.debug(`🔍 Extracted event for ${config.id}:`, JSON.stringify(actualEvent, null, 2));
+        this.logger.debug(`🔍 RunId: ${runId}, Attempt: ${attempt}`);
+        
+        const executionContext = await executionContextService.createExecutionContext(
+          metadata,
+          actualEvent,
+          runId,
+          attempt
+        );
+
+        // Execute the function through ExecutionContextService
+        return await executionContextService.executeFunction(executionContext);
+      } catch (error) {
+        this.logger.error(`🔥 Function ${config.id} execution failed:`, error);
+        throw error;
+      }
+    };
+
     // Return the Inngest function definition
     return {
       ...inngestConfig,
       triggers,
-      handler,
+      handler: wrappedHandler,
     };
   }
 
