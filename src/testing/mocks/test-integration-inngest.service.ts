@@ -6,6 +6,7 @@ import {
 } from "../../interfaces/inngest-event.interface";
 import { INNGEST_CONFIG } from "../../constants";
 import { MergedInngestConfig } from "../../utils/config-validation";
+import { FunctionRegistry } from "../../services/function-registry.service";
 
 /**
  * Test-friendly version of InngestService for integration tests
@@ -20,8 +21,11 @@ export class TestIntegrationInngestService extends InngestService {
   private sentEvents: InngestEvent[] = [];
   private sendCalls: Array<{ events: InngestEvent[]; timestamp: number }> = [];
 
-  constructor(@Inject(INNGEST_CONFIG) config: MergedInngestConfig) {
-    super(config);
+  constructor(
+    @Inject(INNGEST_CONFIG) config: MergedInngestConfig,
+    functionRegistry: FunctionRegistry,
+  ) {
+    super(config, functionRegistry);
   }
 
   /**

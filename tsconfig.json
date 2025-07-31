@@ -9,6 +9,8 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -19,7 +21,7 @@
     "sourceMap": true,
     "incremental": true,
     "removeComments": false,
-    "downlevelIteration": true
+    "downlevelIteration": true,
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"]

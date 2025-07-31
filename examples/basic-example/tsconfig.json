@@ -18,8 +18,14 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "nestjs-inngest": ["../../src"],
-      "nestjs-inngest/*": ["../../src/*"]
+      "nestjs-inngest": [
+        "../../dist"
+      ],
+      "nestjs-inngest/*": [
+        "../../dist/*"
+      ]
     }
-  }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

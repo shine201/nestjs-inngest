@@ -1,6 +1,7 @@
 import { InngestModuleConfig } from "../interfaces/inngest-config.interface";
 import { VALIDATION_RULES, ERROR_MESSAGES } from "../constants";
 import { InngestConfigError } from "../errors";
+import { InngestConfigDefaults } from "./config-defaults";
 
 /**
  * Configuration validation error (alias for backward compatibility)
@@ -242,13 +243,14 @@ export function validateConfig(config: InngestModuleConfig): ValidationResult {
 export type MergedInngestConfig = Required<
   Omit<
     InngestModuleConfig,
-    "eventKey" | "signingKey" | "baseUrl" | "httpPlatform"
+    "eventKey" | "signingKey" | "baseUrl" | "httpPlatform" | "serveMode"
   >
 > & {
   eventKey?: string;
   signingKey?: string;
   baseUrl?: string;
   httpPlatform?: string;
+  serveMode?: string;
 };
 
 /**
@@ -280,18 +282,25 @@ export function mergeWithDefaults(
       disableSignatureVerification: false,
     },
     httpPlatform: config.httpPlatform,
+    connectionMethod: config.connectionMethod ?? "auto",
+    serveMode: config.serveMode,
   };
 }
 
 /**
  * Validates and merges configuration in one step
  */
-export function validateAndMergeConfig(config: InngestModuleConfig): {
+export function validateAndMergeConfig(config: Partial<InngestModuleConfig>): {
   config: MergedInngestConfig;
   validation: ValidationResult;
 } {
-  const validation = validateConfig(config);
-  const mergedConfig = mergeWithDefaults(config);
+  // Apply smart defaults first
+  InngestConfigDefaults.validateRequiredConfig(config);
+  const configWithDefaults = InngestConfigDefaults.applyDefaults(config);
+  
+  // Then validate the complete configuration
+  const validation = validateConfig(configWithDefaults);
+  const mergedConfig = mergeWithDefaults(configWithDefaults);
 
   return {
     config: mergedConfig,

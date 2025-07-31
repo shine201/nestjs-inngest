@@ -27,3 +27,6 @@ export * from "./testing";
 
 // HTTP Platform Adapters
 export * from "./adapters";
+
+// Setup helpers
+export { setupInngest } from "./setup";

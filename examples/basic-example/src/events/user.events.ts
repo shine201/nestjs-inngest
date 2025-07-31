@@ -1,20 +1,20 @@
-import { EventTypes } from 'nestjs-inngest';
+import { EventRegistry, InngestEvent } from "nestjs-inngest";
 
 /**
  * Type-safe event definitions for user-related events
- * 
+ *
  * This demonstrates the type-safe event pattern where you define
  * all your events in one place with their exact data structure.
  */
-export type UserEvents = EventTypes<{
+export interface UserEventRegistry extends EventRegistry {
   /**
    * Triggered when a new user registers
    */
-  'user.registered': {
+  "user.registered": {
     userId: string;
     email: string;
     name: string;
-    registrationSource: 'web' | 'mobile' | 'api';
+    registrationSource: "web" | "mobile" | "api";
     timestamp: string;
     metadata?: {
       ipAddress?: string;
@@ -26,19 +26,19 @@ export type UserEvents = EventTypes<{
   /**
    * Triggered when a user's email address is verified
    */
-  'user.verified': {
+  "user.verified": {
     userId: string;
     email: string;
-    verificationMethod: 'email_link' | 'email_code' | 'manual';
+    verificationMethod: "email_link" | "email_code" | "manual";
     timestamp: string;
   };
 
   /**
    * Triggered when an email is sent to a user
    */
-  'user.email.sent': {
+  "user.email.sent": {
     userId: string;
-    emailType: 'welcome' | 'verification' | 'password_reset' | 'notification';
+    emailType: "welcome" | "verification" | "password_reset" | "notification";
     emailId: string;
     recipient: string;
     subject: string;
@@ -52,9 +52,9 @@ export type UserEvents = EventTypes<{
   /**
    * Triggered when an email delivery fails
    */
-  'user.email.failed': {
+  "user.email.failed": {
     userId: string;
-    emailType: 'welcome' | 'verification' | 'password_reset' | 'notification';
+    emailType: "welcome" | "verification" | "password_reset" | "notification";
     recipient: string;
     error: string;
     retryable: boolean;
@@ -64,30 +64,34 @@ export type UserEvents = EventTypes<{
   /**
    * Triggered for analytics tracking
    */
-  'analytics.event': {
+  "analytics.event": {
     userId?: string;
     eventType: string;
-    category: 'user' | 'email' | 'system';
+    category: "user" | "email" | "system";
     properties: Record<string, any>;
     timestamp: string;
     sessionId?: string;
   };
-}>;
+}
 
 /**
- * Helper type to extract event data from a specific event
- * 
- * Usage: EventData<UserEvents['user.registered']>
+ * Helper type for creating typed events from the registry
  */
-export type EventData<T> = T extends { data: infer U } ? U : never;
+export type UserEvent<T extends keyof UserEventRegistry> = InngestEvent<
+  UserEventRegistry[T]
+> & {
+  name: T;
+};
 
 /**
  * Helper to create properly typed events
  */
 export class UserEventFactory {
-  static userRegistered(data: EventData<UserEvents['user.registered']>): UserEvents['user.registered'] {
+  static userRegistered(
+    data: UserEventRegistry["user.registered"]
+  ): UserEvent<"user.registered"> {
     return {
-      name: 'user.registered',
+      name: "user.registered",
       data: {
         ...data,
         timestamp: data.timestamp || new Date().toISOString(),
@@ -97,9 +101,11 @@ export class UserEventFactory {
     };
   }
 
-  static userVerified(data: EventData<UserEvents['user.verified']>): UserEvents['user.verified'] {
+  static userVerified(
+    data: UserEventRegistry["user.verified"]
+  ): UserEvent<"user.verified"> {
     return {
-      name: 'user.verified',
+      name: "user.verified",
       data: {
         ...data,
         timestamp: data.timestamp || new Date().toISOString(),
@@ -109,9 +115,11 @@ export class UserEventFactory {
     };
   }
 
-  static emailSent(data: EventData<UserEvents['user.email.sent']>): UserEvents['user.email.sent'] {
+  static emailSent(
+    data: UserEventRegistry["user.email.sent"]
+  ): UserEvent<"user.email.sent"> {
     return {
-      name: 'user.email.sent',
+      name: "user.email.sent",
       data: {
         ...data,
         timestamp: data.timestamp || new Date().toISOString(),
@@ -121,9 +129,11 @@ export class UserEventFactory {
     };
   }
 
-  static emailFailed(data: EventData<UserEvents['user.email.failed']>): UserEvents['user.email.failed'] {
+  static emailFailed(
+    data: UserEventRegistry["user.email.failed"]
+  ): UserEvent<"user.email.failed"> {
     return {
-      name: 'user.email.failed',
+      name: "user.email.failed",
       data: {
         ...data,
         timestamp: data.timestamp || new Date().toISOString(),
@@ -133,9 +143,11 @@ export class UserEventFactory {
     };
   }
 
-  static analyticsEvent(data: EventData<UserEvents['analytics.event']>): UserEvents['analytics.event'] {
+  static analyticsEvent(
+    data: UserEventRegistry["analytics.event"]
+  ): UserEvent<"analytics.event"> {
     return {
-      name: 'analytics.event',
+      name: "analytics.event",
       data: {
         ...data,
         timestamp: data.timestamp || new Date().toISOString(),

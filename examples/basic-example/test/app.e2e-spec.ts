@@ -1,11 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
-import { ValidationPipe } from '@nestjs/common';
-import request from 'supertest';
-import { InngestTestingModule, InngestTestUtils } from 'nestjs-inngest';
-import { AppModule } from '../src/app.module';
+import { Test, TestingModule } from "@nestjs/testing";
+import { INestApplication } from "@nestjs/common";
+import { ValidationPipe } from "@nestjs/common";
+import request from "supertest";
+import { InngestTestingModule, InngestTestUtils } from "nestjs-inngest";
+import { AppModule } from "../src/app.module";
 
-describe('AppController (e2e)', () => {
+describe("AppController (e2e)", () => {
   let app: INestApplication;
 
   beforeAll(async () => {
@@ -16,9 +16,9 @@ describe('AppController (e2e)', () => {
           useRealServices: false,
           includeController: true,
           mockConfig: {
-            appId: 'e2e-test-app',
-            signingKey: 'e2e-test-signing-key',
-            eventKey: 'e2e-test-event-key',
+            appId: "e2e-test-app",
+            signingKey: "e2e-test-signing-key",
+            eventKey: "e2e-test-event-key",
             development: {
               enabled: true,
               disableSignatureVerification: true,
@@ -27,9 +27,7 @@ describe('AppController (e2e)', () => {
         }),
         AppModule,
       ],
-    })
-      .overrideModule(AppModule)
-      .compile();
+    }).compile();
 
     app = moduleFixture.createNestApplication();
 
@@ -42,7 +40,7 @@ describe('AppController (e2e)', () => {
         transformOptions: {
           enableImplicitConversion: true,
         },
-      }),
+      })
     );
 
     await app.init();
@@ -52,17 +50,17 @@ describe('AppController (e2e)', () => {
     await app.close();
   });
 
-  describe('/users (POST)', () => {
-    it('should create a new user', async () => {
+  describe("/users (POST)", () => {
+    it("should create a new user", async () => {
       const createUserDto = {
-        email: 'test@example.com',
-        name: 'Test User',
-        password: 'password123',
-        registrationSource: 'api',
+        email: "test@example.com",
+        name: "Test User",
+        password: "password123",
+        registrationSource: "api",
       };
 
       const response = await request(app.getHttpServer())
-        .post('/users')
+        .post("/users")
         .send(createUserDto)
         .expect(201);
 
@@ -72,21 +70,21 @@ describe('AppController (e2e)', () => {
       expect(response.body.user.name).toBe(createUserDto.name);
       expect(response.body.user.isVerified).toBe(false);
       expect(response.body.user.id).toBeDefined();
-      expect(response.body.message).toContain('Welcome email has been sent');
+      expect(response.body.message).toContain("Welcome email has been sent");
 
       // Password should not be returned
       expect(response.body.user.password).toBeUndefined();
     });
 
-    it('should validate required fields', async () => {
+    it("should validate required fields", async () => {
       const invalidDto = {
-        email: 'invalid-email',
-        name: '',
-        password: '123', // Too short
+        email: "invalid-email",
+        name: "",
+        password: "123", // Too short
       };
 
       const response = await request(app.getHttpServer())
-        .post('/users')
+        .post("/users")
         .send(invalidDto)
         .expect(400);
 
@@ -94,66 +92,66 @@ describe('AppController (e2e)', () => {
       expect(Array.isArray(response.body.message)).toBe(true);
     });
 
-    it('should prevent duplicate emails', async () => {
+    it("should prevent duplicate emails", async () => {
       const createUserDto = {
-        email: 'duplicate@example.com',
-        name: 'First User',
-        password: 'password123',
+        email: "duplicate@example.com",
+        name: "First User",
+        password: "password123",
       };
 
       // Create first user
       await request(app.getHttpServer())
-        .post('/users')
+        .post("/users")
         .send(createUserDto)
         .expect(201);
 
       // Try to create second user with same email
       const duplicateDto = {
-        email: 'duplicate@example.com',
-        name: 'Second User',
-        password: 'password456',
+        email: "duplicate@example.com",
+        name: "Second User",
+        password: "password456",
       };
 
       const response = await request(app.getHttpServer())
-        .post('/users')
+        .post("/users")
         .send(duplicateDto)
         .expect(400);
 
-      expect(response.body.message).toContain('already exists');
+      expect(response.body.message).toContain("already exists");
     });
 
-    it('should use default registration source', async () => {
+    it("should use default registration source", async () => {
       const createUserDto = {
-        email: 'default@example.com',
-        name: 'Default User',
-        password: 'password123',
+        email: "default@example.com",
+        name: "Default User",
+        password: "password123",
       };
 
       const response = await request(app.getHttpServer())
-        .post('/users')
+        .post("/users")
         .send(createUserDto)
         .expect(201);
 
-      expect(response.body.user.registrationSource).toBe('api');
+      expect(response.body.user.registrationSource).toBe("api");
     });
   });
 
-  describe('/users (GET)', () => {
-    it('should return all users', async () => {
+  describe("/users (GET)", () => {
+    it("should return all users", async () => {
       // Create a test user first
       const createUserDto = {
-        email: 'list@example.com',
-        name: 'List User',
-        password: 'password123',
+        email: "list@example.com",
+        name: "List User",
+        password: "password123",
       };
 
       await request(app.getHttpServer())
-        .post('/users')
+        .post("/users")
         .send(createUserDto)
         .expect(201);
 
       const response = await request(app.getHttpServer())
-        .get('/users')
+        .get("/users")
         .expect(200);
 
       expect(response.body.success).toBe(true);
@@ -168,17 +166,17 @@ describe('AppController (e2e)', () => {
     });
   });
 
-  describe('/users/:id (GET)', () => {
-    it('should return user by id', async () => {
+  describe("/users/:id (GET)", () => {
+    it("should return user by id", async () => {
       // Create a test user
       const createUserDto = {
-        email: 'get@example.com',
-        name: 'Get User',
-        password: 'password123',
+        email: "get@example.com",
+        name: "Get User",
+        password: "password123",
       };
 
       const createResponse = await request(app.getHttpServer())
-        .post('/users')
+        .post("/users")
         .send(createUserDto)
         .expect(201);
 
@@ -195,54 +193,54 @@ describe('AppController (e2e)', () => {
       expect(response.body.user.password).toBeUndefined();
     });
 
-    it('should return 404 for non-existent user', async () => {
+    it("should return 404 for non-existent user", async () => {
       const response = await request(app.getHttpServer())
-        .get('/users/non-existent-id')
+        .get("/users/non-existent-id")
         .expect(404);
 
-      expect(response.body.message).toContain('not found');
+      expect(response.body.message).toContain("not found");
     });
   });
 
-  describe('/users/verify (POST)', () => {
-    it('should verify user email', async () => {
+  describe("/users/verify (POST)", () => {
+    it("should verify user email", async () => {
       // Create a test user
       const createUserDto = {
-        email: 'verify@example.com',
-        name: 'Verify User',
-        password: 'password123',
+        email: "verify@example.com",
+        name: "Verify User",
+        password: "password123",
       };
 
       const createResponse = await request(app.getHttpServer())
-        .post('/users')
+        .post("/users")
         .send(createUserDto)
         .expect(201);
 
       const userId = createResponse.body.user.id;
 
       const verifyDto = {
-        token: 'test-verification-token',
+        token: "test-verification-token",
         userId,
       };
 
       const response = await request(app.getHttpServer())
-        .post('/users/verify')
+        .post("/users/verify")
         .send(verifyDto)
         .expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.user.isVerified).toBe(true);
-      expect(response.body.message).toContain('verified successfully');
+      expect(response.body.message).toContain("verified successfully");
     });
 
-    it('should validate verification request', async () => {
+    it("should validate verification request", async () => {
       const invalidVerifyDto = {
-        token: '', // Empty token
-        userId: 'invalid-user-id',
+        token: "", // Empty token
+        userId: "invalid-user-id",
       };
 
       const response = await request(app.getHttpServer())
-        .post('/users/verify')
+        .post("/users/verify")
         .send(invalidVerifyDto)
         .expect(400);
 
@@ -250,17 +248,17 @@ describe('AppController (e2e)', () => {
     });
   });
 
-  describe('/users/:id/analytics (GET)', () => {
-    it('should return user analytics', async () => {
+  describe("/users/:id/analytics (GET)", () => {
+    it("should return user analytics", async () => {
       // Create a test user
       const createUserDto = {
-        email: 'analytics@example.com',
-        name: 'Analytics User',
-        password: 'password123',
+        email: "analytics@example.com",
+        name: "Analytics User",
+        password: "password123",
       };
 
       const createResponse = await request(app.getHttpServer())
-        .post('/users')
+        .post("/users")
         .send(createUserDto)
         .expect(201);
 
@@ -277,19 +275,19 @@ describe('AppController (e2e)', () => {
       expect(response.body.summary.totalEvents).toBeGreaterThanOrEqual(0);
     });
 
-    it('should return 404 for non-existent user analytics', async () => {
+    it("should return 404 for non-existent user analytics", async () => {
       const response = await request(app.getHttpServer())
-        .get('/users/non-existent-id/analytics')
+        .get("/users/non-existent-id/analytics")
         .expect(404);
 
-      expect(response.body.message).toContain('not found');
+      expect(response.body.message).toContain("not found");
     });
   });
 
-  describe('/users/health/status (GET)', () => {
-    it('should return system health status', async () => {
+  describe("/users/health/status (GET)", () => {
+    it("should return system health status", async () => {
       const response = await request(app.getHttpServer())
-        .get('/users/health/status')
+        .get("/users/health/status")
         .expect(200);
 
       expect(response.body.success).toBe(true);
@@ -302,10 +300,10 @@ describe('AppController (e2e)', () => {
     });
   });
 
-  describe('/users/analytics/summary (GET)', () => {
-    it('should return analytics summary', async () => {
+  describe("/users/analytics/summary (GET)", () => {
+    it("should return analytics summary", async () => {
       const response = await request(app.getHttpServer())
-        .get('/users/analytics/summary')
+        .get("/users/analytics/summary")
         .expect(200);
 
       expect(response.body.success).toBe(true);
@@ -315,17 +313,17 @@ describe('AppController (e2e)', () => {
     });
   });
 
-  describe('/users/:id/resend-verification (POST)', () => {
-    it('should resend verification email for unverified user', async () => {
+  describe("/users/:id/resend-verification (POST)", () => {
+    it("should resend verification email for unverified user", async () => {
       // Create a test user
       const createUserDto = {
-        email: 'resend@example.com',
-        name: 'Resend User',
-        password: 'password123',
+        email: "resend@example.com",
+        name: "Resend User",
+        password: "password123",
       };
 
       const createResponse = await request(app.getHttpServer())
-        .post('/users')
+        .post("/users")
         .send(createUserDto)
         .expect(201);
 
@@ -336,19 +334,19 @@ describe('AppController (e2e)', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.message).toContain('resent');
+      expect(response.body.message).toContain("resent");
     });
 
-    it('should not resend verification for verified user', async () => {
+    it("should not resend verification for verified user", async () => {
       // Create and verify a user
       const createUserDto = {
-        email: 'verified@example.com',
-        name: 'Verified User',
-        password: 'password123',
+        email: "verified@example.com",
+        name: "Verified User",
+        password: "password123",
       };
 
       const createResponse = await request(app.getHttpServer())
-        .post('/users')
+        .post("/users")
         .send(createUserDto)
         .expect(201);
 
@@ -356,8 +354,8 @@ describe('AppController (e2e)', () => {
 
       // Verify the user
       await request(app.getHttpServer())
-        .post('/users/verify')
-        .send({ token: 'test-token', userId })
+        .post("/users/verify")
+        .send({ token: "test-token", userId })
         .expect(200);
 
       // Try to resend verification
@@ -365,29 +363,29 @@ describe('AppController (e2e)', () => {
         .post(`/users/${userId}/resend-verification`)
         .expect(400);
 
-      expect(response.body.message).toContain('already verified');
+      expect(response.body.message).toContain("already verified");
     });
 
-    it('should return 404 for non-existent user', async () => {
+    it("should return 404 for non-existent user", async () => {
       const response = await request(app.getHttpServer())
-        .post('/users/non-existent-id/resend-verification')
+        .post("/users/non-existent-id/resend-verification")
         .expect(404);
 
-      expect(response.body.message).toContain('not found');
+      expect(response.body.message).toContain("not found");
     });
   });
 
-  describe('/users/:id/test-event (POST)', () => {
-    it('should trigger test event for user', async () => {
+  describe("/users/:id/test-event (POST)", () => {
+    it("should trigger test event for user", async () => {
       // Create a test user
       const createUserDto = {
-        email: 'test-event@example.com',
-        name: 'Test Event User',
-        password: 'password123',
+        email: "test-event@example.com",
+        name: "Test Event User",
+        password: "password123",
       };
 
       const createResponse = await request(app.getHttpServer())
-        .post('/users')
+        .post("/users")
         .send(createUserDto)
         .expect(201);
 
@@ -395,24 +393,24 @@ describe('AppController (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .post(`/users/${userId}/test-event`)
-        .query({ eventType: 'custom_test_event' })
+        .query({ eventType: "custom_test_event" })
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.eventType).toBe('custom_test_event');
-      expect(response.body.message).toContain('triggered successfully');
+      expect(response.body.eventType).toBe("custom_test_event");
+      expect(response.body.message).toContain("triggered successfully");
     });
 
-    it('should use default event type', async () => {
+    it("should use default event type", async () => {
       // Create a test user
       const createUserDto = {
-        email: 'default-event@example.com',
-        name: 'Default Event User',
-        password: 'password123',
+        email: "default-event@example.com",
+        name: "Default Event User",
+        password: "password123",
       };
 
       const createResponse = await request(app.getHttpServer())
-        .post('/users')
+        .post("/users")
         .send(createUserDto)
         .expect(201);
 
@@ -423,125 +421,125 @@ describe('AppController (e2e)', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.eventType).toBe('test_event');
+      expect(response.body.eventType).toBe("test_event");
     });
 
-    it('should return 404 for non-existent user', async () => {
+    it("should return 404 for non-existent user", async () => {
       const response = await request(app.getHttpServer())
-        .post('/users/non-existent-id/test-event')
+        .post("/users/non-existent-id/test-event")
         .expect(404);
 
-      expect(response.body.message).toContain('not found');
+      expect(response.body.message).toContain("not found");
     });
   });
 
-  describe('Inngest Integration', () => {
-    describe('/api/inngest (PUT)', () => {
-      it('should return registered functions', async () => {
+  describe("Inngest Integration", () => {
+    describe("/api/inngest (PUT)", () => {
+      it("should return registered functions", async () => {
         const response = await request(app.getHttpServer())
-          .put('/api/inngest')
+          .put("/api/inngest")
           .expect(200);
 
-        expect(response.body).toHaveProperty('functions');
-        expect(response.body).toHaveProperty('sdk');
-        expect(response.body.sdk.name).toBe('nest-inngest');
+        expect(response.body).toHaveProperty("functions");
+        expect(response.body).toHaveProperty("sdk");
+        expect(response.body.sdk.name).toBe("nest-inngest");
         expect(response.body.functions).toBeInstanceOf(Array);
         expect(response.body.functions.length).toBeGreaterThan(0);
 
         // Check that our test functions are registered
         const functionIds = response.body.functions.map((f: any) => f.id);
-        expect(functionIds).toContain('send-welcome-email');
-        expect(functionIds).toContain('handle-email-failure');
-        expect(functionIds).toContain('track-user-verification');
-        expect(functionIds).toContain('track-analytics-event');
+        expect(functionIds).toContain("send-welcome-email");
+        expect(functionIds).toContain("handle-email-failure");
+        expect(functionIds).toContain("track-user-verification");
+        expect(functionIds).toContain("track-analytics-event");
       });
     });
 
-    describe('/api/inngest (POST)', () => {
-      it('should handle function execution requests', async () => {
+    describe("/api/inngest (POST)", () => {
+      it("should handle function execution requests", async () => {
         // Create a test user first
         const createUserDto = {
-          email: 'inngest@example.com',
-          name: 'Inngest User',
-          password: 'password123',
+          email: "inngest@example.com",
+          name: "Inngest User",
+          password: "password123",
         };
 
         const createResponse = await request(app.getHttpServer())
-          .post('/users')
+          .post("/users")
           .send(createUserDto)
           .expect(201);
 
         const userId = createResponse.body.user.id;
 
         // Create a test event for the welcome email function
-        const testEvent = InngestTestUtils.createTestEvent('user.registered', {
+        const testEvent = InngestTestUtils.createTestEvent("user.registered", {
           userId,
           email: createUserDto.email,
           name: createUserDto.name,
-          registrationSource: 'api',
+          registrationSource: "api",
           timestamp: new Date().toISOString(),
         });
 
         const webhookRequest = InngestTestUtils.createTestWebhookRequest(
-          'send-welcome-email',
+          "send-welcome-email",
           testEvent
         );
 
         const response = await request(app.getHttpServer())
-          .post('/api/inngest')
+          .post("/api/inngest")
           .send(webhookRequest)
           .expect(200);
 
-        expect(response.body).toHaveProperty('status', 'ok');
-        expect(response.body).toHaveProperty('result');
+        expect(response.body).toHaveProperty("status", "ok");
+        expect(response.body).toHaveProperty("result");
         expect(response.body.result.success).toBe(true);
         expect(response.body.result.userId).toBe(userId);
       });
 
-      it('should handle non-existent function requests', async () => {
-        const testEvent = InngestTestUtils.createTestEvent('test.event', {
-          message: 'This should fail',
+      it("should handle non-existent function requests", async () => {
+        const testEvent = InngestTestUtils.createTestEvent("test.event", {
+          message: "This should fail",
         });
 
         const webhookRequest = InngestTestUtils.createTestWebhookRequest(
-          'non-existent-function',
+          "non-existent-function",
           testEvent
         );
 
         const response = await request(app.getHttpServer())
-          .post('/api/inngest')
+          .post("/api/inngest")
           .send(webhookRequest)
           .expect(404);
 
-        expect(response.body.error.message).toContain('Function not found');
+        expect(response.body.error.message).toContain("Function not found");
       });
     });
   });
 
-  describe('Error Handling', () => {
-    it('should handle validation errors gracefully', async () => {
+  describe("Error Handling", () => {
+    it("should handle validation errors gracefully", async () => {
       const invalidData = {
-        email: 'not-an-email',
+        email: "not-an-email",
         name: 123, // Should be string
-        password: 'short', // Too short
-        registrationSource: 'invalid', // Not in enum
+        password: "short", // Too short
+        registrationSource: "invalid", // Not in enum
       };
 
       const response = await request(app.getHttpServer())
-        .post('/users')
+        .post("/users")
         .send(invalidData)
         .expect(400);
 
       expect(response.body.message).toBeDefined();
       expect(Array.isArray(response.body.message)).toBe(true);
-      expect(response.body.error).toBe('Bad Request');
+      expect(response.body.error).toBe("Bad Request");
     });
 
-    it('should handle server errors gracefully', async () => {
+    it("should handle server errors gracefully", async () => {
       // This test would require mocking a service to throw an error
       // For now, we'll just ensure the error format is correct
       const response = await request(app.getHttpServer())
-        .get('/users/malformed-id-that-causes-error')
+        .get("/users/malformed-id-that-causes-error")
         .expect(404);
 
       expect(response.body.message).toBeDefined();

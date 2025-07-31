@@ -110,6 +110,7 @@ export class InngestTestingModule {
         enabled: true,
         disableSignatureVerification: true,
       },
+      connectionMethod: "serve",
       ...mockConfig,
       httpPlatform: httpPlatform,
     };
@@ -301,6 +302,7 @@ export class InngestTestingModule {
         enabled: testConfig.isDev,
         disableSignatureVerification: testConfig.isDev,
       },
+      connectionMethod: "serve",
       baseUrl: testConfig.baseUrl,
       httpPlatform: config.httpPlatform || "express",
       ...config.mockConfig,

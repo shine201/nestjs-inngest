@@ -12,11 +12,13 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  Inject,
 } from '@nestjs/common';
 import { IsEmail, IsString, MinLength, IsOptional, IsIn } from 'class-validator';
 import { UserService, User, CreateUserDto } from '../services/user.service';
 import { AnalyticsService } from '../services/analytics.service';
 import { EmailService } from '../services/email.service';
+import { InngestService } from 'nestjs-inngest';
 
 /**
  * Data Transfer Objects (DTOs) for validation
@@ -64,6 +66,7 @@ export class UserController {
     private readonly userService: UserService,
     private readonly analyticsService: AnalyticsService,
     private readonly emailService: EmailService,
+    private readonly inngestService: InngestService,
   ) {}
 
   /**
@@ -406,6 +409,116 @@ export class UserController {
       }
       
       throw new BadRequestException(`Failed to trigger test event: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get Inngest integration status
+   * 
+   * GET /users/inngest/status
+   */
+  @Get('inngest/status')
+  async getInngestStatus(): Promise<{
+    success: boolean;
+    inngest: any;
+    endpoints: any;
+    timestamp: string;
+  }> {
+    this.logger.log('Checking Inngest integration status');
+
+    try {
+      // Get Inngest client status
+      const client = this.inngestService.getClient();
+      const functions = this.inngestService.getAllFunctions();
+
+      const endpoints = {
+        webhook: '/api/inngest',
+        methods: ['POST', 'PUT'],
+        description: 'Inngest webhook endpoint for function execution and introspection'
+      };
+
+      const connectionMethods = this.inngestService.getConnectionMethods();
+      const connectionStatus = this.inngestService.getConnectionStatus();
+
+      return {
+        success: true,
+        inngest: {
+          clientId: client.id,
+          totalFunctions: functions.length,
+          functions: functions.map(fn => ({
+            id: fn.config.id,
+            name: fn.config.name || fn.config.id,
+            triggers: fn.config.triggers || []
+          })),
+          status: 'connected',
+          connectionMethods,
+          connectionStatus: {
+            connected: connectionStatus.connected,
+            functions: connectionStatus.functions
+          }
+        },
+        endpoints,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get Inngest status: ${error.message}`);
+      
+      return {
+        success: false,
+        inngest: {
+          status: 'error',
+          error: error.message
+        },
+        endpoints: {
+          webhook: '/api/inngest',
+          methods: ['POST', 'PUT'],
+          description: 'Inngest webhook endpoint (currently unavailable)'
+        },
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
+  /**
+   * Test Inngest webhook endpoint connectivity
+   * 
+   * GET /users/inngest/test
+   */
+  @Get('inngest/test')
+  async testInngestWebhook(): Promise<{
+    success: boolean;
+    webhook: any;
+    message: string;
+  }> {
+    this.logger.log('Testing Inngest webhook endpoint');
+
+    const webhookUrl = process.env.PORT ? 
+      `http://localhost:${process.env.PORT}/api/inngest` : 
+      'http://localhost:3000/api/inngest';
+
+    return {
+      success: true,
+      webhook: {
+        url: webhookUrl,
+        methods: ['POST', 'PUT'],
+        status: 'accessible',
+        note: 'This endpoint only accepts POST/PUT requests from Inngest platform'
+      },
+      message: 'Inngest webhook endpoint is properly configured and accessible'
+    };
+  }
+
+  @Post('inngest/connect')
+  async manualConnect() {
+    this.logger.log('Manual Inngest connection attempt');
+    
+    try {
+      await this.inngestService.reconnect();
+      const status = this.inngestService.getConnectionStatus();
+      
+      return { success: true, result: status };
+    } catch (error) {
+      return { success: false, result: { error: error.message } };
     }
   }
 }

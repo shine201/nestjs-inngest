@@ -35,28 +35,17 @@ import { UserController } from './controllers/user.controller';
           appId: configService.get('INNGEST_APP_ID', 'basic-example-app'),
           signingKey: configService.get('INNGEST_SIGNING_KEY'),
           eventKey: configService.get('INNGEST_EVENT_KEY'),
-          
-          // Environment-specific settings
           env: configService.get('NODE_ENV', 'development') as any,
           isDev: configService.get('NODE_ENV') === 'development',
-          
-          // Webhook configuration
           endpoint: '/api/inngest',
-          
-          // Logging configuration
           logger: configService.get('NODE_ENV') !== 'production',
-          
-          // Performance settings
           timeout: parseInt(configService.get('INNGEST_TIMEOUT', '30000')),
           maxBatchSize: parseInt(configService.get('INNGEST_MAX_BATCH_SIZE', '100')),
-          
-          // Development mode settings
+          connectionMethod: configService.get('INNGEST_CONNECTION_METHOD', 'both') as any,
           development: {
             enabled: configService.get('NODE_ENV') === 'development',
             disableSignatureVerification: configService.get('NODE_ENV') === 'development',
           },
-          
-          // Retry configuration
           retry: {
             maxAttempts: parseInt(configService.get('INNGEST_MAX_RETRIES', '3')),
             backoff: 'exponential' as const,

@@ -1,4 +1,9 @@
-import { Injectable, Inject, Logger } from "@nestjs/common";
+import {
+  Injectable,
+  Inject,
+  Logger,
+  OnApplicationBootstrap,
+} from "@nestjs/common";
 import { Inngest } from "inngest";
 import {
   InngestEvent,
@@ -16,6 +21,8 @@ import {
   EventValidator,
   TypeChecker,
 } from "../utils/validation-error-reporter";
+import { FunctionRegistry } from "./function-registry.service";
+import { InngestFunctionMetadata } from "../interfaces/inngest-function.interface";
 
 /**
  * Retry options for event sending
@@ -30,21 +37,51 @@ interface RetryOptions {
  * Service for interacting with Inngest
  */
 @Injectable()
-export class InngestService {
+export class InngestService implements OnApplicationBootstrap {
   private readonly logger = new Logger(InngestService.name);
   private readonly inngestClient: Inngest;
   private readonly eventBuilder: TypedEventBuilder<DefaultEventRegistry> =
     new TypedEventBuilder();
+  private connection: any = null;
 
   constructor(
     @Inject(INNGEST_CONFIG) private readonly config: MergedInngestConfig,
+    private readonly functionRegistry: FunctionRegistry
   ) {
     this.inngestClient = this.createInngestClient();
     this.logger.log(
-      `Inngest service initialized for app: ${this.config.appId}`,
+      `Inngest service initialized for app: ${this.config.appId}`
     );
   }
+  async onApplicationBootstrap(): Promise<void> {
+    await this.runningTask();
+  }
+  /**
+   * See:
+   * https://github.com/nestjs/nest/pull/14914
+   * https://github.com/nestjs/nest/issues/14911
+   */
+  async runningTask() {
+    this.logger.log("🔄 OnApplicationBootstrap called");
 
+    const methods = this.getConnectionMethods();
+    this.logger.log(`📋 Connection methods: ${methods.active.join(" + ")}`);
+
+    if (methods.connect) {
+      this.logger.log("📡 Attempting to connect to Inngest...");
+      await this.connectToInngest();
+    }
+
+    if (methods.serve) {
+      this.logger.log("🌐 Serve mode enabled - webhook endpoint available");
+      // Note: serve middleware should be set up in main.ts for proper integration
+      this.logger.log("💡 Tip: For better serve mode support, consider using serve middleware in main.ts");
+    }
+
+    if (!methods.connect && !methods.serve) {
+      this.logger.warn("⚠️ No connection methods enabled");
+    }
+  }
   /**
    * Creates and configures the Inngest client
    */
@@ -78,7 +115,7 @@ export class InngestService {
       throw new InngestEventError(
         "Failed to initialize Inngest client",
         undefined,
-        error as Error,
+        error as Error
       );
     }
   }
@@ -104,7 +141,7 @@ export class InngestService {
   async send(eventOrEvents: InngestEvent | InngestEventBatch): Promise<void> {
     if (!this.config.eventKey) {
       throw new InngestEventError(
-        "Event key is required for sending events. Please configure eventKey in your Inngest module.",
+        "Event key is required for sending events. Please configure eventKey in your Inngest module."
       );
     }
 
@@ -129,7 +166,7 @@ export class InngestService {
 
     if (events.length > this.config.maxBatchSize) {
       throw new InngestEventError(
-        `Batch size exceeds maximum allowed (${this.config.maxBatchSize}). Got ${events.length} events.`,
+        `Batch size exceeds maximum allowed (${this.config.maxBatchSize}). Got ${events.length} events.`
       );
     }
 
@@ -153,7 +190,7 @@ export class InngestService {
       EventValidator.validateEventNameFormat(
         event.name,
         reporter,
-        this.config.strict,
+        this.config.strict
       );
     }
 
@@ -171,7 +208,7 @@ export class InngestService {
     reporter.throwIfErrors(event?.name);
 
     this.logger.debug(
-      `Event${eventContext} passed all validation checks: ${event?.name}`,
+      `Event${eventContext} passed all validation checks: ${event?.name}`
     );
   }
 
@@ -180,10 +217,10 @@ export class InngestService {
    */
   private validateEventWithSchema(
     event: InngestEvent,
-    reporter: ValidationErrorReporter,
+    reporter: ValidationErrorReporter
   ): void {
     const schema = this.eventBuilder.getSchema(
-      event.name as string & keyof DefaultEventRegistry,
+      event.name as string & keyof DefaultEventRegistry
     );
     if (schema) {
       try {
@@ -193,7 +230,7 @@ export class InngestService {
             `Schema validation failed for event type: ${event.name}`,
             "SCHEMA_VALIDATION_FAILED",
             "valid data according to schema",
-            event.data,
+            event.data
           );
         } else {
           this.logger.debug(`Event passed schema validation: ${event.name}`);
@@ -206,7 +243,7 @@ export class InngestService {
           }`,
           "SCHEMA_VALIDATION_ERROR",
           "valid data according to schema",
-          event.data,
+          event.data
         );
       }
     }
@@ -226,7 +263,7 @@ export class InngestService {
       EventValidator.validateEventNameFormat(
         event.name,
         reporter,
-        this.config.strict,
+        this.config.strict
       );
     }
 
@@ -293,13 +330,13 @@ export class InngestService {
    */
   private async attemptSend(
     events: InngestEvent[],
-    options: RetryOptions,
+    options: RetryOptions
   ): Promise<void> {
     try {
       // Log the events being sent (in debug mode)
       if (this.config.logger) {
         this.logger.debug(
-          `Sending ${events.length} event(s) to Inngest (attempt ${options.attempt}/${options.maxAttempts})`,
+          `Sending ${events.length} event(s) to Inngest (attempt ${options.attempt}/${options.maxAttempts})`
         );
         events.forEach((event, index) => {
           this.logger.debug(`Event ${index + 1}: ${event.name}`, {
@@ -325,7 +362,7 @@ export class InngestService {
       ) {
         this.logger.warn(
           `Failed to send event(s) on attempt ${options.attempt}/${options.maxAttempts}: ${eventNames}. Retrying in ${options.delay}ms...`,
-          error,
+          error
         );
 
         // Wait before retrying
@@ -334,7 +371,7 @@ export class InngestService {
         // Calculate next delay with exponential backoff
         const nextDelay = Math.min(
           options.delay * (this.config.retry.backoffMultiplier || 2),
-          this.config.retry.maxDelay || 30000,
+          this.config.retry.maxDelay || 30000
         );
 
         // Retry with updated options
@@ -348,13 +385,13 @@ export class InngestService {
       // All retries exhausted or non-retryable error
       this.logger.error(
         `Failed to send event(s) after ${options.attempt} attempt(s): ${eventNames}`,
-        error,
+        error
       );
 
       throw new InngestEventError(
         ERROR_MESSAGES.EVENT_SEND_FAILED,
         eventNames,
-        error as Error,
+        error as Error
       );
     }
   }
@@ -402,7 +439,7 @@ export class InngestService {
   async sendBatch(events: InngestEvent[]): Promise<void> {
     if (!this.config.eventKey) {
       throw new InngestEventError(
-        "Event key is required for sending events. Please configure eventKey in your Inngest module.",
+        "Event key is required for sending events. Please configure eventKey in your Inngest module."
       );
     }
 
@@ -419,7 +456,7 @@ export class InngestService {
     const batches = this.createBatches(events, this.config.maxBatchSize);
 
     this.logger.debug(
-      `Sending ${events.length} events in ${batches.length} batch(es)`,
+      `Sending ${events.length} events in ${batches.length} batch(es)`
     );
 
     // Send all batches with controlled concurrency
@@ -428,7 +465,7 @@ export class InngestService {
     for (let i = 0; i < batches.length; i += concurrencyLimit) {
       const batchSlice = batches.slice(i, i + concurrencyLimit);
       const batchPromises = batchSlice.map((batch) =>
-        this.sendWithRetry(batch),
+        this.sendWithRetry(batch)
       );
 
       // Wait for this slice of batches to complete before starting the next
@@ -436,7 +473,7 @@ export class InngestService {
     }
 
     this.logger.log(
-      `Successfully sent all ${events.length} events in ${batches.length} batch(es)`,
+      `Successfully sent all ${events.length} events in ${batches.length} batch(es)`
     );
   }
 
@@ -445,7 +482,7 @@ export class InngestService {
    */
   private createBatches(
     events: InngestEvent[],
-    batchSize: number,
+    batchSize: number
   ): InngestEvent[][] {
     const batches: InngestEvent[][] = [];
 
@@ -461,7 +498,7 @@ export class InngestService {
    */
   registerEventSchema<T extends string & keyof DefaultEventRegistry>(
     eventName: T,
-    schema: EventSchemaRegistry<DefaultEventRegistry>[T],
+    schema: EventSchemaRegistry<DefaultEventRegistry>[T]
   ): void {
     if (schema) {
       this.eventBuilder.registerSchema(eventName, schema);
@@ -473,13 +510,13 @@ export class InngestService {
    * Register multiple event schemas
    */
   registerEventSchemas(
-    schemas: EventSchemaRegistry<DefaultEventRegistry>,
+    schemas: EventSchemaRegistry<DefaultEventRegistry>
   ): void {
     Object.entries(schemas).forEach(([eventName, schema]) => {
       if (schema) {
         this.registerEventSchema(
           eventName as string & keyof DefaultEventRegistry,
-          schema,
+          schema
         );
       }
     });
@@ -497,7 +534,288 @@ export class InngestService {
    */
   hasEventSchema(eventName: string): boolean {
     return !!this.eventBuilder.getSchema(
-      eventName as string & keyof DefaultEventRegistry,
+      eventName as string & keyof DefaultEventRegistry
     );
+  }
+
+  /**
+   * Gets all registered Inngest functions
+   */
+  getAllFunctions(): InngestFunctionMetadata[] {
+    return this.functionRegistry.getFunctions();
+  }
+
+  /**
+   * Gets function count
+   */
+  getFunctionCount(): number {
+    return this.functionRegistry.getFunctionCount();
+  }
+
+  /**
+   * Gets a specific function by ID
+   */
+  getFunction(id: string): InngestFunctionMetadata | undefined {
+    return this.functionRegistry.getFunction(id);
+  }
+
+  /**
+   * Gets all function IDs
+   */
+  getFunctionIds(): string[] {
+    return this.functionRegistry.getFunctionIds();
+  }
+
+  private shouldUseConnect(): boolean {
+    const method = (this.config as any).connectionMethod || "auto";
+
+    switch (method) {
+      case "connect":
+        return true;
+      case "serve":
+        return false;
+      case "both":
+        return true;
+      case "auto":
+        return this.config.isDev;
+      default:
+        return this.config.isDev;
+    }
+  }
+
+  private shouldUseServe(): boolean {
+    const method = (this.config as any).connectionMethod || "auto";
+
+    switch (method) {
+      case "connect":
+        return false;
+      case "serve":
+        return true;
+      case "both":
+        return true;
+      case "auto":
+        return !this.config.isDev;
+      default:
+        return !this.config.isDev;
+    }
+  }
+
+  getConnectionMethods(): {
+    connect: boolean;
+    serve: boolean;
+    active: string[];
+  } {
+    return {
+      connect: this.shouldUseConnect(),
+      serve: this.shouldUseServe(),
+      active: [
+        ...(this.shouldUseConnect() ? ["connect"] : []),
+        ...(this.shouldUseServe() ? ["serve"] : []),
+      ],
+    };
+  }
+
+  private async connectToInngest(): Promise<void> {
+    try {
+      const { connect } = await import("inngest/connect");
+      const functionDefs = this.functionRegistry.createInngestFunctions();
+
+      if (functionDefs.length === 0) {
+        this.logger.warn("No functions found to register with Inngest");
+        return;
+      }
+
+      this.logger.log(
+        `Connecting to Inngest with ${functionDefs.length} functions...`
+      );
+
+      // Convert function definitions to actual Inngest functions
+      const inngestFunctions = functionDefs.map((def) => {
+        const config: any = {
+          id: def.id,
+          name: def.name,
+        };
+
+        if (def.concurrency) config.concurrency = def.concurrency;
+        if (def.rateLimit) config.rateLimit = def.rateLimit;
+        if (def.retries) config.retries = def.retries;
+        if (def.timeout) config.timeouts = def.timeout;
+
+        return this.inngestClient.createFunction(
+          config,
+          def.triggers,
+          def.handler
+        );
+      });
+
+      this.connection = await connect({
+        apps: [
+          {
+            client: this.inngestClient,
+            functions: inngestFunctions,
+          },
+        ],
+      });
+
+      this.logger.log("✅ Connected to Inngest Dev Server");
+    } catch (error) {
+      this.logger.error("❌ Failed to connect to Inngest:", error);
+      if (this.config.isDev) {
+        this.logger.warn("Continuing without Inngest connection");
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Creates Express middleware for serve mode (optional alternative to controller)
+   * This can be used in main.ts for better Inngest Dev Server integration
+   */
+  /**
+   * Creates serve middleware for Express
+   */
+  async createExpressMiddleware(): Promise<any> {
+    try {
+      const { serve } = await import("inngest/express");
+      return this.createServeHandler(serve);
+    } catch (error) {
+      this.logger.error("❌ Failed to create Express middleware:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Creates serve plugin for Fastify
+   */
+  async createFastifyPlugin(): Promise<any> {
+    try {
+      const { fastifyPlugin } = await import("inngest/fastify");
+      const functions = this.createInngestFunctionArray();
+      
+      if (functions.length === 0) {
+        this.logger.warn("No functions found for Fastify plugin");
+        return null;
+      }
+
+      this.logger.log(`Creating Fastify plugin with ${functions.length} functions...`);
+
+      return {
+        plugin: fastifyPlugin,
+        options: {
+          client: this.inngestClient,
+          functions,
+        }
+      };
+    } catch (error) {
+      this.logger.error("❌ Failed to create Fastify plugin:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Creates serve middleware/plugin based on detected platform
+   */
+  async createServeMiddleware(platform?: 'express' | 'fastify'): Promise<any> {
+    const detectedPlatform = platform || this.detectPlatform();
+    
+    if (detectedPlatform === 'fastify') {
+      return this.createFastifyPlugin();
+    } else {
+      return this.createExpressMiddleware();
+    }
+  }
+
+  /**
+   * Common logic for creating serve handler
+   */
+  private createServeHandler(serveFunction: any): any {
+    const functions = this.createInngestFunctionArray();
+    
+    if (functions.length === 0) {
+      this.logger.warn("No functions found for serve handler");
+      return null;
+    }
+
+    this.logger.log(`Creating serve handler with ${functions.length} functions...`);
+
+    return serveFunction({
+      client: this.inngestClient,
+      functions,
+    });
+  }
+
+  /**
+   * Converts function definitions to Inngest function array
+   */
+  private createInngestFunctionArray(): any[] {
+    const functionDefs = this.functionRegistry.createInngestFunctions();
+
+    return functionDefs.map((def) => {
+      const config: any = {
+        id: def.id,
+        name: def.name,
+      };
+
+      if (def.concurrency) config.concurrency = def.concurrency;
+      if (def.rateLimit) config.rateLimit = def.rateLimit;
+      if (def.retries) config.retries = def.retries;
+      if (def.timeout) config.timeouts = def.timeout;
+
+      return this.inngestClient.createFunction(
+        config,
+        def.triggers,
+        def.handler
+      );
+    });
+  }
+
+  /**
+   * Detects the current HTTP platform using PlatformDetector
+   */
+  private detectPlatform(): 'express' | 'fastify' {
+    const { PlatformDetector } = require('../adapters/platform-detector');
+    
+    // Try to get cached platform first
+    const cachedPlatform = PlatformDetector.getCachedPlatform();
+    if (cachedPlatform) {
+      return cachedPlatform;
+    }
+    
+    // Check available platforms
+    const availablePlatforms = PlatformDetector.getAvailablePlatforms();
+    const fastifyPlatform = availablePlatforms.find(p => p.platform === 'fastify' && p.available);
+    const expressPlatform = availablePlatforms.find(p => p.platform === 'express' && p.available);
+    
+    if (fastifyPlatform && !expressPlatform) {
+      // Only Fastify is available
+      return 'fastify';
+    } else if (expressPlatform && !fastifyPlatform) {
+      // Only Express is available
+      return 'express';
+    } else {
+      // Both or neither available, default to Express
+      return 'express';
+    }
+  }
+
+  getConnectionStatus() {
+    return {
+      connected: !!this.connection,
+      connection: this.connection,
+      functions: this.functionRegistry.getFunctionCount(),
+    };
+  }
+
+
+  async reconnect(): Promise<void> {
+    this.logger.log("🔄 Reconnect called");
+    if (this.connection?.close) {
+      this.logger.log("🔌 Closing existing connection");
+      await this.connection.close();
+      this.connection = null;
+    }
+    this.logger.log("🚀 Starting new connection attempt");
+    await this.connectToInngest();
   }
 }

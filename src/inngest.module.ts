@@ -1,5 +1,7 @@
+import "reflect-metadata"
 import { DynamicModule, Module, Provider } from "@nestjs/common";
-import { DiscoveryModule } from "@nestjs/core";
+import { DiscoveryModule, DiscoveryService, ModulesContainer, MetadataScanner, ModuleRef } from "@nestjs/core";
+
 import {
   InngestModuleConfig,
   InngestModuleAsyncOptions,
@@ -79,13 +81,23 @@ export class InngestModule {
       config.httpPlatform,
     );
 
-    // Set the controller path dynamically using metadata
-    Reflect.defineMetadata("path", finalConfig.endpoint, InngestController);
+    // Determine if we should include the serve controller
+    const shouldUseServe = this.shouldEnableServeMode(finalConfig);
+    const shouldUseController = shouldUseServe && this.shouldUseControllerMode(finalConfig);
+    const controllers = shouldUseController ? [InngestController] : [];
+    
+    console.log(`🔧 Module setup: connectionMethod=${finalConfig.connectionMethod}, serveMode=${finalConfig.serveMode}, shouldUseController=${shouldUseController}, controllers=${controllers.length}`);
+    
+    if (shouldUseController) {
+      // Set the controller path dynamically using metadata
+      Reflect.defineMetadata("path", finalConfig.endpoint, InngestController);
+      console.log(`🛣️ Controller path set to: ${finalConfig.endpoint}`);
+    }
 
     return {
       module: InngestModule,
       imports: [DiscoveryModule],
-      controllers: [InngestController],
+      controllers,
       providers: [
         configProvider,
         httpAdapterProvider,
@@ -240,6 +252,25 @@ export class InngestModule {
             throw validation.errors[0];
           }
 
+          // Initialize development mode if configuration is provided
+          if (config.development) {
+            const devConfig: DevelopmentModeConfig = {
+              ...config.development,
+              enabled: config.development.enabled ?? false,
+            };
+            DevelopmentMode.initialize(devConfig);
+          } else {
+            // Auto-detect development environment
+            const detectedDevConfig = DevelopmentMode.detectDevelopmentEnvironment();
+            if (detectedDevConfig.enabled) {
+              const fullDevConfig: DevelopmentModeConfig = {
+                ...detectedDevConfig,
+                enabled: detectedDevConfig.enabled ?? false,
+              };
+              DevelopmentMode.initialize(fullDevConfig);
+            }
+          }
+
           // Apply development mode settings to configuration
           const finalConfig = DevelopmentMode.applyToConfig(mergedConfig);
 
@@ -297,5 +328,28 @@ export class InngestModule {
         return new detection.adapter();
       },
     };
+  }
+
+  /**
+   * Determines if serve mode should be enabled based on connection method
+   */
+  private static shouldEnableServeMode(config: any): boolean {
+    const method = config.connectionMethod || "auto";
+    
+    switch (method) {
+      case "connect": return false;
+      case "serve": return true;
+      case "both": return true;
+      case "auto": return !config.isDev;
+      default: return !config.isDev;
+    }
+  }
+
+  /**
+   * Determines if controller-based serve mode should be used
+   */
+  private static shouldUseControllerMode(config: any): boolean {
+    const serveMode = config.serveMode || "controller";
+    return serveMode === "controller";
   }
 }
