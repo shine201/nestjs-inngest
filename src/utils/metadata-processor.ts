@@ -139,14 +139,14 @@ export class MetadataProcessor {
     ) {
       throw new InngestFunctionError(
         `Function ID must be between ${rules.minLength} and ${rules.maxLength} characters`,
-        id
+        id,
       );
     }
 
     if (!rules.pattern.test(trimmedId)) {
       throw new InngestFunctionError(
         'Function ID must be in kebab-case format (e.g., "user-created", "order-completed")',
-        id
+        id,
       );
     }
   }
@@ -158,7 +158,7 @@ export class MetadataProcessor {
     if (!triggers || !Array.isArray(triggers) || triggers.length === 0) {
       throw new InngestFunctionError(
         ERROR_MESSAGES.INVALID_TRIGGERS,
-        functionId
+        functionId,
       );
     }
 
@@ -180,12 +180,12 @@ export class MetadataProcessor {
           this.validateCronTrigger(trigger, i);
         } else {
           validationErrors.push(
-            `Trigger at index ${i} must be either an event trigger or cron trigger`
+            `Trigger at index ${i} must be either an event trigger or cron trigger`,
           );
         }
       } catch (error) {
         validationErrors.push(
-          error instanceof Error ? error.message : String(error)
+          error instanceof Error ? error.message : String(error),
         );
       }
     }
@@ -193,7 +193,7 @@ export class MetadataProcessor {
     if (validationErrors.length > 0) {
       throw new InngestFunctionError(
         `Trigger validation failed:\n${validationErrors.join("\n")}`,
-        functionId
+        functionId,
       );
     }
   }
@@ -204,7 +204,7 @@ export class MetadataProcessor {
   private static validateEventTrigger(trigger: any, index: number): void {
     if (!trigger.event || typeof trigger.event !== "string") {
       throw new Error(
-        `Event trigger at index ${index} must have a valid event name`
+        `Event trigger at index ${index} must have a valid event name`,
       );
     }
 
@@ -216,13 +216,13 @@ export class MetadataProcessor {
       eventName.length > rules.maxLength
     ) {
       throw new Error(
-        `Event name at index ${index} must be between ${rules.minLength} and ${rules.maxLength} characters`
+        `Event name at index ${index} must be between ${rules.minLength} and ${rules.maxLength} characters`,
       );
     }
 
     if (!rules.pattern.test(eventName)) {
       throw new Error(
-        `Event name "${eventName}" must be in kebab-case format with dots (e.g., "user.created")`
+        `Event name "${eventName}" must be in kebab-case format with dots (e.g., "user.created")`,
       );
     }
 
@@ -232,7 +232,7 @@ export class MetadataProcessor {
       (typeof trigger.if !== "string" || trigger.if.trim() === "")
     ) {
       throw new Error(
-        `Event trigger condition at index ${index} must be a non-empty string`
+        `Event trigger condition at index ${index} must be a non-empty string`,
       );
     }
   }
@@ -243,7 +243,7 @@ export class MetadataProcessor {
   private static validateCronTrigger(trigger: any, index: number): void {
     if (!trigger.cron || typeof trigger.cron !== "string") {
       throw new Error(
-        `Cron trigger at index ${index} must have a valid cron expression`
+        `Cron trigger at index ${index} must have a valid cron expression`,
       );
     }
 
@@ -252,7 +252,7 @@ export class MetadataProcessor {
     // Use pre-compiled regex for better performance
     if (!this.CRON_PATTERN.test(cronExpression)) {
       throw new Error(
-        `Invalid cron expression "${cronExpression}". Must have 5 or 6 parts.`
+        `Invalid cron expression "${cronExpression}". Must have 5 or 6 parts.`,
       );
     }
   }
@@ -264,7 +264,7 @@ export class MetadataProcessor {
     if (typeof name !== "string" || name.trim() === "") {
       throw new InngestFunctionError(
         "Function name must be a non-empty string if provided",
-        functionId
+        functionId,
       );
     }
   }
@@ -274,7 +274,7 @@ export class MetadataProcessor {
    */
   private static validateConcurrency(
     concurrency: any,
-    functionId: string
+    functionId: string,
   ): void {
     const rules = this.VALIDATION_RULES.concurrency;
 
@@ -282,26 +282,26 @@ export class MetadataProcessor {
       if (concurrency < rules.min || concurrency > rules.max) {
         throw new InngestFunctionError(
           `Concurrency limit must be between ${rules.min} and ${rules.max}`,
-          functionId
+          functionId,
         );
       }
     } else if (typeof concurrency === "object" && concurrency !== null) {
       if (typeof concurrency.limit !== "number") {
         throw new InngestFunctionError(
           "Concurrency configuration must have a valid limit",
-          functionId
+          functionId,
         );
       }
       if (concurrency.limit < rules.min || concurrency.limit > rules.max) {
         throw new InngestFunctionError(
           `Concurrency limit must be between ${rules.min} and ${rules.max}`,
-          functionId
+          functionId,
         );
       }
     } else {
       throw new InngestFunctionError(
         "Concurrency must be a number or concurrency configuration object",
-        functionId
+        functionId,
       );
     }
   }
@@ -317,14 +317,14 @@ export class MetadataProcessor {
     ) {
       throw new InngestFunctionError(
         "Rate limit must have a valid limit greater than 0",
-        functionId
+        functionId,
       );
     }
 
     if (!rateLimit.period || typeof rateLimit.period !== "string") {
       throw new InngestFunctionError(
         'Rate limit must have a valid period string (e.g., "1m", "1h")',
-        functionId
+        functionId,
       );
     }
   }
@@ -342,7 +342,7 @@ export class MetadataProcessor {
     ) {
       throw new InngestFunctionError(
         `Retries must be a number between ${rules.min} and ${rules.max}`,
-        functionId
+        functionId,
       );
     }
   }
@@ -360,7 +360,7 @@ export class MetadataProcessor {
     ) {
       throw new InngestFunctionError(
         `Timeout must be a number between ${rules.min}ms (1s) and ${rules.max}ms (5m)`,
-        functionId
+        functionId,
       );
     }
   }
@@ -369,7 +369,7 @@ export class MetadataProcessor {
    * Normalizes function configuration with caching
    */
   static normalizeFunctionConfig(
-    config: InngestFunctionConfig
+    config: InngestFunctionConfig,
   ): InngestFunctionConfig {
     const cacheKey = this.createCacheKey(config);
 
@@ -403,7 +403,7 @@ export class MetadataProcessor {
         this.validateFunctionConfig(config);
       } catch (error) {
         errors.push(
-          `Function ${config.id}: ${error instanceof Error ? error.message : String(error)}`
+          `Function ${config.id}: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
     });
@@ -412,7 +412,7 @@ export class MetadataProcessor {
       if (errors.length > 0) {
         throw new InngestFunctionError(
           `Batch validation failed:\n${errors.join("\n")}`,
-          "batch-validation"
+          "batch-validation",
         );
       }
     });
@@ -423,7 +423,7 @@ export class MetadataProcessor {
    */
   static areConfigsEquivalent(
     config1: InngestFunctionConfig,
-    config2: InngestFunctionConfig
+    config2: InngestFunctionConfig,
   ): boolean {
     // Fast path: compare IDs first
     if (config1.id !== config2.id) {

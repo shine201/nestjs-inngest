@@ -63,23 +63,11 @@ export class InngestService implements OnApplicationBootstrap {
    */
   async runningTask() {
     this.logger.log("🔄 OnApplicationBootstrap called");
-
-    const methods = this.getConnectionMethods();
-    this.logger.log(`📋 Connection methods: ${methods.active.join(" + ")}`);
-
-    if (methods.connect) {
-      this.logger.log("📡 Attempting to connect to Inngest...");
+    
+    // Always try to connect - Inngest client handles this automatically
+    if (this.config.isDev) {
+      this.logger.log("📡 Attempting to connect to Inngest Dev Server...");
       await this.connectToInngest();
-    }
-
-    if (methods.serve) {
-      this.logger.log("🌐 Serve mode enabled - webhook endpoint available");
-      // Note: serve middleware should be set up in main.ts for proper integration
-      this.logger.log("💡 Tip: For better serve mode support, consider using serve middleware in main.ts");
-    }
-
-    if (!methods.connect && !methods.serve) {
-      this.logger.warn("⚠️ No connection methods enabled");
     }
   }
   /**
@@ -566,54 +554,7 @@ export class InngestService implements OnApplicationBootstrap {
     return this.functionRegistry.getFunctionIds();
   }
 
-  private shouldUseConnect(): boolean {
-    const method = (this.config as any).connectionMethod || "auto";
-
-    switch (method) {
-      case "connect":
-        return true;
-      case "serve":
-        return false;
-      case "both":
-        return true;
-      case "auto":
-        return this.config.isDev;
-      default:
-        return this.config.isDev;
-    }
-  }
-
-  private shouldUseServe(): boolean {
-    const method = (this.config as any).connectionMethod || "auto";
-
-    switch (method) {
-      case "connect":
-        return false;
-      case "serve":
-        return true;
-      case "both":
-        return true;
-      case "auto":
-        return !this.config.isDev;
-      default:
-        return !this.config.isDev;
-    }
-  }
-
-  getConnectionMethods(): {
-    connect: boolean;
-    serve: boolean;
-    active: string[];
-  } {
-    return {
-      connect: this.shouldUseConnect(),
-      serve: this.shouldUseServe(),
-      active: [
-        ...(this.shouldUseConnect() ? ["connect"] : []),
-        ...(this.shouldUseServe() ? ["serve"] : []),
-      ],
-    };
-  }
+  // Simplified - Inngest handles connection automatically
 
   private async connectToInngest(): Promise<void> {
     try {
@@ -678,6 +619,7 @@ export class InngestService implements OnApplicationBootstrap {
   async createExpressMiddleware(): Promise<any> {
     try {
       const { serve } = await import("inngest/express");
+
       return this.createServeHandler(serve);
     } catch (error) {
       this.logger.error("❌ Failed to create Express middleware:", error);
@@ -692,20 +634,22 @@ export class InngestService implements OnApplicationBootstrap {
     try {
       const { fastifyPlugin } = await import("inngest/fastify");
       const functions = this.createInngestFunctionArray();
-      
+
       if (functions.length === 0) {
         this.logger.warn("No functions found for Fastify plugin");
         return null;
       }
 
-      this.logger.log(`Creating Fastify plugin with ${functions.length} functions...`);
+      this.logger.log(
+        `Creating Fastify plugin with ${functions.length} functions...`
+      );
 
       return {
         plugin: fastifyPlugin,
         options: {
           client: this.inngestClient,
           functions,
-        }
+        },
       };
     } catch (error) {
       this.logger.error("❌ Failed to create Fastify plugin:", error);
@@ -716,12 +660,16 @@ export class InngestService implements OnApplicationBootstrap {
   /**
    * Creates serve middleware/plugin based on detected platform
    */
-  async createServeMiddleware(platform?: 'express' | 'fastify'): Promise<any> {
+  async createServeMiddleware(platform?: "express" | "fastify"): Promise<any> {
+    this.logger.debug(`🚀 SERVE: Creating serve middleware`);
     const detectedPlatform = platform || this.detectPlatform();
-    
-    if (detectedPlatform === 'fastify') {
+    this.logger.debug(`🚀 SERVE: Detected platform: ${detectedPlatform}`);
+
+    if (detectedPlatform === "fastify") {
+      this.logger.debug(`🚀 SERVE: Creating Fastify plugin`);
       return this.createFastifyPlugin();
     } else {
+      this.logger.debug(`🚀 SERVE: Creating Express middleware`);
       return this.createExpressMiddleware();
     }
   }
@@ -730,19 +678,28 @@ export class InngestService implements OnApplicationBootstrap {
    * Common logic for creating serve handler
    */
   private createServeHandler(serveFunction: any): any {
+    this.logger.debug(`🚀 SERVE: Creating serve handler`);
     const functions = this.createInngestFunctionArray();
-    
+    this.logger.debug(
+      `🚀 SERVE: Found ${functions.length} functions for handler`
+    );
+
     if (functions.length === 0) {
-      this.logger.warn("No functions found for serve handler");
+      this.logger.warn("🚀 SERVE: No functions found for serve handler");
       return null;
     }
 
-    this.logger.log(`Creating serve handler with ${functions.length} functions...`);
+    this.logger.log(
+      `🚀 SERVE: Creating serve handler with ${functions.length} functions...`
+    );
 
-    return serveFunction({
+    const handler = serveFunction({
       client: this.inngestClient,
       functions,
     });
+
+    this.logger.debug(`🚀 SERVE: Serve handler created successfully`);
+    return handler;
   }
 
   /**
@@ -773,29 +730,33 @@ export class InngestService implements OnApplicationBootstrap {
   /**
    * Detects the current HTTP platform using PlatformDetector
    */
-  private detectPlatform(): 'express' | 'fastify' {
-    const { PlatformDetector } = require('../adapters/platform-detector');
-    
+  private detectPlatform(): "express" | "fastify" {
+    const { PlatformDetector } = require("../adapters/platform-detector");
+
     // Try to get cached platform first
     const cachedPlatform = PlatformDetector.getCachedPlatform();
     if (cachedPlatform) {
       return cachedPlatform;
     }
-    
+
     // Check available platforms
     const availablePlatforms = PlatformDetector.getAvailablePlatforms();
-    const fastifyPlatform = availablePlatforms.find(p => p.platform === 'fastify' && p.available);
-    const expressPlatform = availablePlatforms.find(p => p.platform === 'express' && p.available);
-    
+    const fastifyPlatform = availablePlatforms.find(
+      (p) => p.platform === "fastify" && p.available
+    );
+    const expressPlatform = availablePlatforms.find(
+      (p) => p.platform === "express" && p.available
+    );
+
     if (fastifyPlatform && !expressPlatform) {
       // Only Fastify is available
-      return 'fastify';
+      return "fastify";
     } else if (expressPlatform && !fastifyPlatform) {
       // Only Express is available
-      return 'express';
+      return "express";
     } else {
       // Both or neither available, default to Express
-      return 'express';
+      return "express";
     }
   }
 
@@ -806,7 +767,6 @@ export class InngestService implements OnApplicationBootstrap {
       functions: this.functionRegistry.getFunctionCount(),
     };
   }
-
 
   async reconnect(): Promise<void> {
     this.logger.log("🔄 Reconnect called");

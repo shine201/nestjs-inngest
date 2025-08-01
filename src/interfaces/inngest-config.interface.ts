@@ -7,15 +7,7 @@ import { HttpPlatformType } from "../adapters/http-platform.interface";
  */
 export type InngestEnvironment = "production" | "development" | "test";
 
-/**
- * Connection method for Inngest
- */
-export type InngestConnectionMethod = "serve" | "connect" | "both" | "auto";
-
-/**
- * Serve mode for handling webhook requests
- */
-export type InngestServeMode = "controller" | "middleware";
+// Simplified - removed complex connection method types
 
 /**
  * Retry configuration for event sending
@@ -156,21 +148,7 @@ export interface InngestModuleConfig {
    */
   httpPlatform?: HttpPlatformType;
 
-  /**
-   * Connection method to use for Inngest
-   * - "serve": Use webhook endpoints (traditional way)
-   * - "connect": Use connect API (modern way, platform-agnostic)
-   * - "both": Use both methods (fallback support)
-   * - "auto": Auto-detect based on environment (default)
-   */
-  connectionMethod?: InngestConnectionMethod;
-
-  /**
-   * Serve mode for handling webhook requests (only used when serve is enabled)
-   * - "controller": Use NestJS controller with @InngestFunction decorators (default)
-   * - "middleware": Use Express middleware with manual function registration
-   */
-  serveMode?: InngestServeMode;
+  // Simplified - removed complex connection method configuration
 }
 
 /**

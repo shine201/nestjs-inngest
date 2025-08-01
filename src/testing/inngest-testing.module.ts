@@ -110,7 +110,6 @@ export class InngestTestingModule {
         enabled: true,
         disableSignatureVerification: true,
       },
-      connectionMethod: "serve",
       ...mockConfig,
       httpPlatform: httpPlatform,
     };
@@ -215,7 +214,7 @@ export class InngestTestingModule {
    * Create a complete testing module builder with common setup
    */
   static createTestingModuleBuilder(
-    config: InngestTestingConfig = {},
+    config: InngestTestingConfig = {}
   ): TestingModuleBuilder {
     return Test.createTestingModule({
       imports: [InngestTestingModule.forTest(config)],
@@ -226,7 +225,7 @@ export class InngestTestingModule {
    * Create a testing module with automatic compilation
    */
   static async createTestingModule(
-    config: InngestTestingConfig = {},
+    config: InngestTestingConfig = {}
   ): Promise<TestingModule> {
     const moduleBuilder = this.createTestingModuleBuilder(config);
     return await moduleBuilder.compile();
@@ -246,7 +245,7 @@ export class InngestTestingModule {
    * Helper to create integration testing setup
    */
   static forIntegrationTest(
-    config: Partial<InngestTestingConfig> = {},
+    config: Partial<InngestTestingConfig> = {}
   ): DynamicModule {
     return this.forTest({
       useRealServices: true,
@@ -260,7 +259,7 @@ export class InngestTestingModule {
    * based on environment variables and available configuration
    */
   static forSmartIntegrationTest(
-    config: Partial<InngestTestingConfig> = {},
+    config: Partial<InngestTestingConfig> = {}
   ): DynamicModule {
     const testConfig = getTestConfig();
     const status = getTestModeStatus();
@@ -275,7 +274,7 @@ export class InngestTestingModule {
       } catch (error) {
         console.warn(
           "⚠️  Real API configuration invalid, falling back to mock mode:",
-          (error as Error).message,
+          (error as Error).message
         );
         testConfig.useRealAPI = false;
       }
@@ -302,7 +301,6 @@ export class InngestTestingModule {
         enabled: testConfig.isDev,
         disableSignatureVerification: testConfig.isDev,
       },
-      connectionMethod: "serve",
       baseUrl: testConfig.baseUrl,
       httpPlatform: config.httpPlatform || "express",
       ...config.mockConfig,
@@ -320,7 +318,7 @@ export class InngestTestingModule {
    * Create a testing module specifically for controller testing
    */
   static forControllerTest(
-    config: Partial<InngestTestingConfig> = {},
+    config: Partial<InngestTestingConfig> = {}
   ): DynamicModule {
     return this.forTest({
       useRealServices: false,
@@ -333,7 +331,7 @@ export class InngestTestingModule {
    * Create a testing module with real services but test configuration
    */
   static forServiceTest(
-    config: Partial<InngestTestingConfig> = {},
+    config: Partial<InngestTestingConfig> = {}
   ): DynamicModule {
     return this.forTest({
       useRealServices: true,
@@ -347,7 +345,7 @@ export class InngestTestingModule {
  * Helper function to quickly create a testing module
  */
 export async function createInngestTestingModule(
-  config: InngestTestingConfig = {},
+  config: InngestTestingConfig = {}
 ): Promise<TestingModule> {
   return InngestTestingModule.createTestingModule(config);
 }
@@ -367,7 +365,7 @@ export class InngestTestUtils {
       ts?: number;
       user?: { id: string; [key: string]: any };
       v?: string;
-    } = {},
+    } = {}
   ) {
     return {
       name: name as string,
@@ -392,7 +390,7 @@ export class InngestTestUtils {
       attempt?: number;
       step?: any;
       ctx?: any;
-    } = {},
+    } = {}
   ) {
     return {
       function_id: functionId,
@@ -414,7 +412,7 @@ export class InngestTestUtils {
       trigger?: any;
       handler?: Function;
       config?: any;
-    } = {},
+    } = {}
   ) {
     return {
       id,
@@ -439,7 +437,7 @@ export class InngestTestUtils {
     functionId: string,
     runId: string,
     event: any,
-    attempt: number = 1,
+    attempt: number = 1
   ) {
     return {
       functionId,
@@ -464,7 +462,7 @@ export class InngestTestUtils {
   static expectEventSent(
     mockSendEvent: jest.Mock,
     eventName: string,
-    eventData?: any,
+    eventData?: any
   ) {
     const calls = mockSendEvent.mock.calls;
     const matchingCall = calls.find((call) => {
@@ -487,7 +485,7 @@ export class InngestTestUtils {
   static expectFunctionTriggered(
     mockHandler: jest.Mock,
     expectedEvent?: any,
-    expectedContext?: any,
+    expectedContext?: any
   ) {
     expect(mockHandler).toHaveBeenCalled();
 

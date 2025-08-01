@@ -1,6 +1,12 @@
-import "reflect-metadata"
+import "reflect-metadata";
 import { DynamicModule, Global, Module, Provider } from "@nestjs/common";
-import { DiscoveryModule, DiscoveryService, ModulesContainer, MetadataScanner, ModuleRef } from "@nestjs/core";
+import {
+  DiscoveryModule,
+  DiscoveryService,
+  ModulesContainer,
+  MetadataScanner,
+  ModuleRef,
+} from "@nestjs/core";
 
 import {
   InngestModuleConfig,
@@ -84,15 +90,13 @@ export class InngestModule {
 
     // Determine if we should include the serve controller
     const shouldUseServe = this.shouldEnableServeMode(finalConfig);
-    const shouldUseController = shouldUseServe && this.shouldUseControllerMode(finalConfig);
+    const shouldUseController =
+      shouldUseServe && this.shouldUseControllerMode(finalConfig);
     const controllers = shouldUseController ? [InngestController] : [];
-    
-    console.log(`🔧 Module setup: connectionMethod=${finalConfig.connectionMethod}, serveMode=${finalConfig.serveMode}, shouldUseController=${shouldUseController}, controllers=${controllers.length}`);
-    
+
     if (shouldUseController) {
       // Set the controller path dynamically using metadata
       Reflect.defineMetadata("path", finalConfig.endpoint, InngestController);
-      console.log(`🛣️ Controller path set to: ${finalConfig.endpoint}`);
     }
 
     return {
@@ -262,7 +266,8 @@ export class InngestModule {
             DevelopmentMode.initialize(devConfig);
           } else {
             // Auto-detect development environment
-            const detectedDevConfig = DevelopmentMode.detectDevelopmentEnvironment();
+            const detectedDevConfig =
+              DevelopmentMode.detectDevelopmentEnvironment();
             if (detectedDevConfig.enabled) {
               const fullDevConfig: DevelopmentModeConfig = {
                 ...detectedDevConfig,
@@ -332,25 +337,16 @@ export class InngestModule {
   }
 
   /**
-   * Determines if serve mode should be enabled based on connection method
+   * Simplified - always enable HTTP endpoint for webhooks
    */
   private static shouldEnableServeMode(config: any): boolean {
-    const method = config.connectionMethod || "auto";
-    
-    switch (method) {
-      case "connect": return false;
-      case "serve": return true;
-      case "both": return true;
-      case "auto": return !config.isDev;
-      default: return !config.isDev;
-    }
+    return true; // Always provide HTTP endpoint
   }
 
   /**
-   * Determines if controller-based serve mode should be used
+   * Simplified - always use controller mode
    */
   private static shouldUseControllerMode(config: any): boolean {
-    const serveMode = config.serveMode || "controller";
-    return serveMode === "controller";
+    return true; // Always use NestJS controller
   }
 }

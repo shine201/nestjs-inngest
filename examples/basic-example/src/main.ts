@@ -24,10 +24,10 @@ async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule, {
       logger: ["log", "error", "warn", "debug", "verbose"],
     });
-    
+
     // Configure static file serving
-    app.useStaticAssets(join(__dirname, '..', 'public'), {
-      index: 'index.html',
+    app.useStaticAssets(join(__dirname, "..", "public"), {
+      index: "index.html",
     });
 
     // Get configuration service
@@ -59,16 +59,27 @@ async function bootstrap() {
       logger.log("CORS enabled for development");
     }
 
-    // Setup Inngest serve middleware (optional, only if using middleware mode)
-    try {
-      const { setupInngest } = await import("nestjs-inngest");
-      await setupInngest(app);
-    } catch (error) {
-      // Silently fail - probably using controller mode
-    }
-
     // Global prefix for API routes (optional)
-    // app.setGlobalPrefix('api');
+    // app.setGlobalPrefix("api");
+
+    // Ensure all modules are initialized first
+    // await app.init();
+
+    // Setup Inngest serve middleware directly (like official examples)
+    try {
+      const { InngestService } = await import("nestjs-inngest");
+      const inngestService = app.get(InngestService);
+      const serveMiddleware = await inngestService.createExpressMiddleware();
+
+      if (serveMiddleware) {
+        app.use("/inngest-serve", serveMiddleware);
+        logger.log(
+          "✅ Inngest serve middleware registered directly at /inngest-serve"
+        );
+      }
+    } catch (error) {
+      logger.warn("⚠️ Failed to setup Inngest serve middleware:", error);
+    }
 
     // Start the server
     await app.listen(port);

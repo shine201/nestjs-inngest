@@ -91,7 +91,7 @@ export type TypedFunctionHandler<
   TEventName extends EventNames<TRegistry> = EventNames<TRegistry>,
   TReturn = any,
 > = (
-  context: TypedEventContext<TRegistry, TEventName>
+  context: TypedEventContext<TRegistry, TEventName>,
 ) => Promise<TReturn> | TReturn;
 
 /**
@@ -105,7 +105,7 @@ function validateTypedFunctionConfig<
   if (!config.id || typeof config.id !== "string" || config.id.trim() === "") {
     throw new InngestFunctionError(
       ERROR_MESSAGES.INVALID_FUNCTION_ID,
-      config.id
+      config.id,
     );
   }
 
@@ -114,7 +114,7 @@ function validateTypedFunctionConfig<
   if (!functionIdPattern.test(config.id)) {
     throw new InngestFunctionError(
       'Function ID must be in kebab-case format (e.g., "user-created", "order-completed")',
-      config.id
+      config.id,
     );
   }
 
@@ -134,7 +134,7 @@ function validateTypedFunctionConfig<
       if (!trigger.event || typeof trigger.event !== "string") {
         throw new InngestFunctionError(
           `Invalid event trigger at index ${index}: event name must be a non-empty string`,
-          config.id
+          config.id,
         );
       }
     } else if ("cron" in trigger) {
@@ -142,13 +142,13 @@ function validateTypedFunctionConfig<
       if (!trigger.cron || typeof trigger.cron !== "string") {
         throw new InngestFunctionError(
           `Invalid cron trigger at index ${index}: cron expression must be a non-empty string`,
-          config.id
+          config.id,
         );
       }
     } else {
       throw new InngestFunctionError(
         `Invalid trigger at index ${index}: must be either event or cron trigger`,
-        config.id
+        config.id,
       );
     }
   });
@@ -161,7 +161,7 @@ function validateTypedFunctionConfig<
     if (retries !== undefined && (typeof retries !== "number" || retries < 0)) {
       throw new InngestFunctionError(
         "Retries must be a non-negative number",
-        config.id
+        config.id,
       );
     }
 
@@ -171,7 +171,7 @@ function validateTypedFunctionConfig<
     ) {
       throw new InngestFunctionError(
         "Timeout must be a positive number",
-        config.id
+        config.id,
       );
     }
 
@@ -179,13 +179,13 @@ function validateTypedFunctionConfig<
       if (typeof rateLimit.limit !== "number" || rateLimit.limit <= 0) {
         throw new InngestFunctionError(
           "Rate limit must be a positive number",
-          config.id
+          config.id,
         );
       }
       if (!rateLimit.period || typeof rateLimit.period !== "string") {
         throw new InngestFunctionError(
           "Rate limit period must be a non-empty string",
-          config.id
+          config.id,
         );
       }
     }
@@ -194,7 +194,7 @@ function validateTypedFunctionConfig<
       if (typeof concurrency.limit !== "number" || concurrency.limit <= 0) {
         throw new InngestFunctionError(
           "Concurrency limit must be a positive number",
-          config.id
+          config.id,
         );
       }
     }
@@ -203,13 +203,13 @@ function validateTypedFunctionConfig<
       if (typeof batchEvents.maxSize !== "number" || batchEvents.maxSize <= 0) {
         throw new InngestFunctionError(
           "Batch max size must be a positive number",
-          config.id
+          config.id,
         );
       }
       if (!batchEvents.timeout || typeof batchEvents.timeout !== "string") {
         throw new InngestFunctionError(
           "Batch timeout must be a non-empty string",
-          config.id
+          config.id,
         );
       }
     }
@@ -217,7 +217,7 @@ function validateTypedFunctionConfig<
     if (priority !== undefined && ![1, 2, 3, 4].includes(priority)) {
       throw new InngestFunctionError(
         "Priority must be 1, 2, 3, or 4",
-        config.id
+        config.id,
       );
     }
   }
@@ -251,7 +251,7 @@ export function TypedInngestFunction<
   return (
     target: any,
     propertyKey: string | symbol,
-    descriptor: PropertyDescriptor
+    descriptor: PropertyDescriptor,
   ) => {
     try {
       // Validate configuration
@@ -276,7 +276,7 @@ export function TypedInngestFunction<
       Reflect.defineMetadata(
         METADATA_KEYS.INNGEST_FUNCTION,
         existingMetadata,
-        target
+        target,
       );
 
       // Also set metadata on method (for individual access)
@@ -284,7 +284,7 @@ export function TypedInngestFunction<
         METADATA_KEYS.INNGEST_FUNCTION,
         metadata,
         target,
-        propertyKey
+        propertyKey,
       );
 
       return descriptor;
@@ -297,7 +297,7 @@ export function TypedInngestFunction<
           error instanceof Error ? error.message : String(error)
         }`,
         config.id,
-        error as Error
+        error as Error,
       );
     }
   };
@@ -316,7 +316,7 @@ export function createEventDecorator<
       "triggers"
     > & {
       triggers?: FunctionTrigger<TRegistry>[];
-    }
+    },
   ): MethodDecorator {
     const fullConfig: TypedInngestFunctionConfig<TRegistry, TEventName> = {
       ...config,
@@ -334,7 +334,7 @@ export function CronFunction(
   config: Omit<TypedInngestFunctionConfig, "triggers"> & {
     cron: string;
     timezone?: string;
-  }
+  },
 ): MethodDecorator {
   const fullConfig: TypedInngestFunctionConfig = {
     ...config,
