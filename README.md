@@ -462,13 +462,8 @@ InngestModule.forRoot({
   // === DEVELOPMENT MODE (Advanced) ===
   development: {
     enabled: true, // 🟠 Extension: Enable development features
-    mockExternalCalls: false, // 🟠 Extension: Mock external service calls
-    localWebhookUrl: "http://localhost:3000", // 🟠 Extension: Custom local webhook URL
     disableSignatureVerification: true, // 🟠 Extension: Skip signature validation
     enableIntrospection: true, // 🟠 Extension: Function debugging tools
-    autoRegisterFunctions: true, // 🟠 Extension: Auto-discover functions
-    developmentTimeout: 60000, // 🟠 Extension: Extended timeout for debugging
-    enableStepDebugging: true, // 🟠 Extension: Step-by-step execution logs
   },
 });
 // Inngest SDK
