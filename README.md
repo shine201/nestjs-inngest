@@ -568,11 +568,9 @@ export class ScheduledTasksService {
     name: "Daily Cleanup Task",
     cron: "0 2 * * *",
     timezone: "UTC",
-    config: {
-      retries: 2,
-      timeout: 300000, // 5 minutes
-      priority: 1, // High priority
-    },
+    retries: 2,
+    timeout: 300000, // 5 minutes
+    priority: 1, // High priority
   })
   async dailyCleanup() {
     // Cleanup logic here
@@ -593,10 +591,8 @@ export class ScheduledTasksService {
   @CronFunction({
     id: "health-check",
     cron: "*/30 * * * *", // Every 30 minutes
-    config: {
-      timeout: 5000,
-      retries: 1,
-    },
+    timeout: 5000,
+    retries: 1,
   })
   async healthCheck() {
     // Health monitoring logic
