@@ -9,6 +9,7 @@ import {
 } from "../interfaces/inngest-event.interface";
 import { InngestFunctionError } from "../errors";
 import { METADATA_KEYS, ERROR_MESSAGES } from "../constants";
+import { InngestFunctionConfig } from "../interfaces/inngest-function.interface";
 
 /**
  * Type-safe Inngest function configuration
@@ -93,6 +94,26 @@ export type TypedFunctionHandler<
 > = (
   context: TypedEventContext<TRegistry, TEventName>,
 ) => Promise<TReturn> | TReturn;
+
+/**
+ * Normalizes the typed function configuration to match InngestFunctionConfig
+ */
+function normalizeTypedFunctionConfig<
+  TRegistry extends EventRegistry,
+  TEventName extends EventNames<TRegistry>,
+>(
+  config: TypedInngestFunctionConfig<TRegistry, TEventName>,
+): InngestFunctionConfig {
+  return {
+    id: config.id,
+    name: config.name || config.id,
+    triggers: config.triggers,
+    retries: config.config?.retries ?? 3,
+    timeout: config.config?.timeout ?? 30000,
+    concurrency: config.config?.concurrency,
+    rateLimit: config.config?.rateLimit,
+  };
+}
 
 /**
  * Validates the typed Inngest function configuration
@@ -257,11 +278,14 @@ export function TypedInngestFunction<
       // Validate configuration
       validateTypedFunctionConfig(config);
 
+      // Normalize configuration to match InngestFunction format
+      const normalizedConfig = normalizeTypedFunctionConfig(config);
+
       // Store metadata for the function registry (match InngestFunction structure)
       const metadata = {
         target,
         propertyKey: propertyKey as string,
-        config: config,
+        config: normalizedConfig,
         handler: descriptor.value,
       };
 

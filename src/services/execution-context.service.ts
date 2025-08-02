@@ -10,6 +10,7 @@ import { StepOptionsOrId } from "inngest";
 import { InngestEvent } from "../interfaces/inngest-event.interface";
 import { InngestRuntimeError } from "../errors";
 import { DevelopmentMode } from "../utils/development-mode";
+import { InngestService } from "./inngest.service";
 
 /**
  * Context for function execution
@@ -320,12 +321,9 @@ export class ExecutionContextService {
           typeof idOrOptions === "string"
             ? idOrOptions
             : idOrOptions.id || "step";
-        this.logger.debug(
-          `Executing step "${stepId}" in function ${functionMetadata.config.id}`,
-        );
+
         try {
           const result = await fn(...input);
-          this.logger.debug(`Step "${stepId}" completed successfully`);
           return result;
         } catch (error) {
           this.logger.error(`Step "${stepId}" failed:`, error);
@@ -389,7 +387,6 @@ export class ExecutionContextService {
             ? idOrOptions
             : idOrOptions.id || "sendEvent";
         try {
-          const { InngestService } = await import("./inngest.service");
           const inngestService = await this.moduleRef.resolve(
             InngestService,
             contextId,
@@ -463,9 +460,6 @@ export class ExecutionContextService {
 
         try {
           const response = await fetch(...args);
-          this.logger.debug(
-            `Fetch completed in step "${stepId}" with status ${response.status}`,
-          );
           return response;
         } catch (error) {
           this.logger.error(`Fetch failed in step "${stepId}":`, error);

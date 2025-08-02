@@ -3,9 +3,12 @@ import { ValidationPipe, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { AppModule } from "./app.module";
 import { NestExpressApplication } from "@nestjs/platform-express";
-import { join } from "path";
+import {
+  NestFastifyApplication,
+  FastifyAdapter,
+} from "@nestjs/platform-fastify";
+import { InngestService } from "nestjs-inngest";
 import "dotenv/config";
-
 /**
  * Bootstrap the NestJS application
  *
@@ -20,70 +23,85 @@ async function bootstrap() {
   const logger = new Logger("Bootstrap");
 
   try {
-    // Create NestJS application
-    const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-      logger: ["log", "error", "warn", "debug", "verbose"],
-    });
+    // Platform switch - change this to 'fastify' to use Fastify
+    const USE_FASTIFY = true; // Set to true for Fastify, false for Express
 
-    // Configure static file serving
-    app.useStaticAssets(join(__dirname, "..", "public"), {
-      index: "index.html",
-    });
+    const platform = USE_FASTIFY ? "fastify" : "express";
+    logger.log(`🚀 Starting with ${platform.toUpperCase()} platform`);
 
-    // Get configuration service
+    let app: NestExpressApplication | NestFastifyApplication;
+
+    if (USE_FASTIFY) {
+      // Create Fastify application
+      app = await NestFactory.create<NestFastifyApplication>(
+        AppModule,
+        new FastifyAdapter(),
+        { logger: ["log", "error", "warn", "debug", "verbose"] }
+      );
+
+      // Setup Inngest Fastify plugin using createServe
+      const inngestService = app.get(InngestService);
+      const { plugin, options } = await inngestService.createServe("fastify");
+      await app.register(plugin, options);
+      logger.log("✅ Inngest Fastify plugin registered");
+    } else {
+      // Create Express application
+      app = await NestFactory.create<NestExpressApplication>(AppModule, {
+        bodyParser: false,
+        logger: ["log", "error", "warn", "debug", "verbose"],
+      });
+
+      // Configure Express body parser
+      app.useBodyParser("json", { limit: "10mb" });
+
+      // Setup Inngest Express middleware using createServe
+      const inngestService = app.get(InngestService);
+      const serveMiddleware = await inngestService.createServe("express");
+      app.use("/api/inngest", serveMiddleware);
+      logger.log("✅ Inngest Express middleware registered");
+    }
+
+    // Common configuration
     const configService = app.get(ConfigService);
-    const port = configService.get("PORT", process.env.PORT);
+    const port = configService.get("PORT", process.env.PORT || 5100);
     const nodeEnv = configService.get("NODE_ENV", "development");
-    console.log("process.env.port~~~~", process.env.PORT);
+
     // Global validation pipe
     app.useGlobalPipes(
       new ValidationPipe({
         transform: true,
         whitelist: true,
         forbidNonWhitelisted: true,
-        transformOptions: {
-          enableImplicitConversion: true,
-        },
+        transformOptions: { enableImplicitConversion: true },
       })
     );
 
-    // CORS configuration for development
+    // CORS for development
     if (nodeEnv === "development") {
-      app.enableCors({
-        origin: ["http://localhost:3000", "http://localhost:3001"],
-        methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization"],
-        credentials: true,
-      });
-
-      logger.log("CORS enabled for development");
-    }
-
-    // Global prefix for API routes (optional)
-    // app.setGlobalPrefix("api");
-
-    // Ensure all modules are initialized first
-    // await app.init();
-
-    // Setup Inngest serve middleware directly (like official examples)
-    try {
-      const { InngestService } = await import("nestjs-inngest");
-      const inngestService = app.get(InngestService);
-      const serveMiddleware = await inngestService.createExpressMiddleware();
-
-      if (serveMiddleware) {
-        app.use("/inngest-serve", serveMiddleware);
-        logger.log(
-          "✅ Inngest serve middleware registered directly at /inngest-serve"
-        );
+      if (USE_FASTIFY) {
+        // Fastify CORS would need @fastify/cors package
+        logger.log("CORS: Configure manually for Fastify if needed");
+      } else {
+        app.enableCors({
+          origin: [
+            "http://localhost:3000",
+            "http://localhost:3001",
+            `http://localhost:${port}`,
+          ],
+          methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+          allowedHeaders: ["Content-Type", "Authorization"],
+          credentials: true,
+        });
+        logger.log("CORS enabled for development");
       }
-    } catch (error) {
-      logger.warn("⚠️ Failed to setup Inngest serve middleware:", error);
     }
 
-    // Start the server
-    await app.listen(port);
-
+    // Start server
+    if (USE_FASTIFY) {
+      await app.listen(port, "0.0.0.0");
+    } else {
+      await app.listen(port);
+    }
     // Log startup information
     logger.log(`🚀 Application is running on: http://localhost:${port}`);
     logger.log(`🌐 Web Dashboard: http://localhost:${port}`);

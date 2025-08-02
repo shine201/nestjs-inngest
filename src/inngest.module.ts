@@ -1,12 +1,6 @@
 import "reflect-metadata";
 import { DynamicModule, Global, Module, Provider } from "@nestjs/common";
-import {
-  DiscoveryModule,
-  DiscoveryService,
-  ModulesContainer,
-  MetadataScanner,
-  ModuleRef,
-} from "@nestjs/core";
+import { DiscoveryModule } from "@nestjs/core";
 
 import {
   InngestModuleConfig,
@@ -20,16 +14,8 @@ import {
 } from "./utils/development-mode";
 import { InngestService } from "./services/inngest.service";
 import { FunctionRegistry } from "./services/function-registry.service";
-import { ExecutionContextService } from "./services/execution-context.service";
-import { ScopeManagerService } from "./services/scope-manager.service";
-import { SignatureVerificationService } from "./services/signature-verification.service";
-import { InngestController } from "./controllers/inngest.controller";
 import { INNGEST_CONFIG } from "./constants";
-import { PlatformDetector } from "./adapters/platform-detector";
-import {
-  HttpPlatformAdapter,
-  HttpPlatformType,
-} from "./adapters/http-platform.interface";
+import { ExecutionContextService } from "./services";
 
 /**
  * Main module for Inngest integration with NestJS
@@ -83,41 +69,19 @@ export class InngestModule {
       useValue: finalConfig,
     };
 
-    // Create HTTP platform adapter provider
-    const httpAdapterProvider: Provider = this.createHttpAdapterProvider(
-      config.httpPlatform,
-    );
-
-    // Determine if we should include the serve controller
-    const shouldUseServe = this.shouldEnableServeMode(finalConfig);
-    const shouldUseController =
-      shouldUseServe && this.shouldUseControllerMode(finalConfig);
-    const controllers = shouldUseController ? [InngestController] : [];
-
-    if (shouldUseController) {
-      // Set the controller path dynamically using metadata
-      Reflect.defineMetadata("path", finalConfig.endpoint, InngestController);
-    }
-
     return {
       module: InngestModule,
       imports: [DiscoveryModule],
-      controllers,
       providers: [
         configProvider,
-        httpAdapterProvider,
         InngestService,
         FunctionRegistry,
         ExecutionContextService,
-        ScopeManagerService,
-        SignatureVerificationService,
       ],
       exports: [
         InngestService,
         FunctionRegistry,
         ExecutionContextService,
-        ScopeManagerService,
-        SignatureVerificationService,
         INNGEST_CONFIG,
       ],
       global: false,
@@ -145,58 +109,22 @@ export class InngestModule {
    * @returns A configured dynamic module
    */
   static forRootAsync(options: InngestModuleAsyncOptions): DynamicModule {
-    // Create a dynamic controller class that will be configured at runtime
-    const DynamicInngestController = class extends InngestController {};
+    // Simplified - no controller needed
 
     return {
       module: InngestModule,
       imports: [DiscoveryModule, ...(options.imports || [])],
-      controllers: [DynamicInngestController],
       providers: [
         ...this.createAsyncProviders(options),
-        {
-          provide: InngestController,
-          useClass: DynamicInngestController,
-        },
-        {
-          provide: "HTTP_PLATFORM_ADAPTER",
-          useValue: {
-            // Runtime adapter that detects platform per request
-            extractRequest: (req: any) => {
-              const adapter = PlatformDetector.createAdapterFromRequest(req);
-              return adapter.extractRequest(req);
-            },
-            wrapResponse: (res: any) => {
-              // Use Express as default for response wrapping when no request context
-              const adapter = PlatformDetector.getPlatformAdapter("express");
-              return adapter.wrapResponse(res);
-            },
-            getRawBody: (req: any) => {
-              const adapter = PlatformDetector.createAdapterFromRequest(req);
-              return adapter.getRawBody(req);
-            },
-            getPlatformName: () => {
-              // Return the cached platform name or 'auto' if not detected yet
-              return PlatformDetector.getCachedPlatform() || "auto";
-            },
-            isCompatible: (req: any) => {
-              const adapter = PlatformDetector.createAdapterFromRequest(req);
-              return adapter.isCompatible(req);
-            },
-          },
-        },
+        // Removed controller and HTTP platform adapter - using direct serve middleware
         InngestService,
         FunctionRegistry,
         ExecutionContextService,
-        ScopeManagerService,
-        SignatureVerificationService,
       ],
       exports: [
         InngestService,
         FunctionRegistry,
         ExecutionContextService,
-        ScopeManagerService,
-        SignatureVerificationService,
         INNGEST_CONFIG,
       ],
       global: false,
@@ -280,13 +208,6 @@ export class InngestModule {
           // Apply development mode settings to configuration
           const finalConfig = DevelopmentMode.applyToConfig(mergedConfig);
 
-          // Set the controller path dynamically using metadata
-          Reflect.defineMetadata(
-            "path",
-            finalConfig.endpoint,
-            InngestController,
-          );
-
           return finalConfig;
         },
         inject: options.inject || [],
@@ -307,46 +228,11 @@ export class InngestModule {
         // Apply development mode settings to configuration
         const finalConfig = DevelopmentMode.applyToConfig(mergedConfig);
 
-        // Set the controller path dynamically using metadata
-        Reflect.defineMetadata("path", finalConfig.endpoint, InngestController);
-
         return finalConfig;
       },
       inject: [options.useClass || options.useExisting!],
     };
   }
 
-  /**
-   * Creates HTTP platform adapter provider
-   */
-  private static createHttpAdapterProvider(
-    platformType?: HttpPlatformType,
-  ): Provider {
-    return {
-      provide: "HTTP_PLATFORM_ADAPTER",
-      useFactory: (): HttpPlatformAdapter => {
-        if (platformType && platformType !== "auto") {
-          return PlatformDetector.getPlatformAdapter(platformType);
-        }
-
-        // Auto-detect platform
-        const detection = PlatformDetector.detectPlatform();
-        return new detection.adapter();
-      },
-    };
-  }
-
-  /**
-   * Simplified - always enable HTTP endpoint for webhooks
-   */
-  private static shouldEnableServeMode(config: any): boolean {
-    return true; // Always provide HTTP endpoint
-  }
-
-  /**
-   * Simplified - always use controller mode
-   */
-  private static shouldUseControllerMode(config: any): boolean {
-    return true; // Always use NestJS controller
-  }
+  // Simplified - removed complex platform adapter and controller logic
 }

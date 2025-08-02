@@ -1,12 +1,10 @@
 // Utility exports
 export * from "./config-validation";
-export * from "./connection-pool";
 export * from "./development-mode";
 export * from "./error-handler";
 export * from "./event-types";
-export * from "./memory-optimizer";
 export * from "./metadata-processor";
-export * from "./request-optimizer";
+// Removed: connection-pool, memory-optimizer, request-optimizer
 
 // Re-export validation-error-reporter with explicit naming to avoid conflicts
 export {

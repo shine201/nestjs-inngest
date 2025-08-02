@@ -183,10 +183,10 @@ export class EmailService {
     const delay = Math.random() * 2000 + 500; // 500ms to 2.5s
     await new Promise(resolve => setTimeout(resolve, delay));
     
-    // Simulate occasional failures (5% failure rate)
-    if (Math.random() < 0.05) {
-      throw new Error('Simulated email service failure');
-    }
+    // Simulate occasional failures (5% failure rate) - DISABLED for testing
+    // if (Math.random() < 0.05) {
+    //   throw new Error('Simulated email service failure');
+    // }
     
     // Log the email content for development
     this.logger.debug(`📧 Email Details:

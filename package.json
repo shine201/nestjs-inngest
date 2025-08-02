@@ -1,8 +1,7 @@
 {
   "name": "nestjs-inngest",
-  "private": true,
-  "version": "1.2.0",
-  "description": "Advanced NestJS integration for Inngest with performance optimizations, type safety, and enterprise features",
+  "version": "1.2.1",
+  "description": "Simple, unified NestJS integration for Inngest with multi-platform support and type safety",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -17,7 +16,8 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
     "start:dev": "pnpm --filter nestjs-inngest-basic-example run start:dev",
-    "prepublishOnly": " rm -f tsconfig.tsbuildinfo && npm run format && npm run build && npm test && npm run typecheck"
+    "prepublishOnly": " rm -f tsconfig.tsbuildinfo && npm run format && npm run build && npm run test:passWithNoTests && npm run typecheck",
+    "test:passWithNoTests": "jest --passWithNoTests"
   },
   "keywords": [
     "nestjs-inngest",

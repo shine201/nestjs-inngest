@@ -24,7 +24,7 @@ function validateAppId(appId: string): InngestConfigError[] {
 
   if (!appId || typeof appId !== "string") {
     errors.push(
-      new InngestConfigError(ERROR_MESSAGES.MISSING_APP_ID, "appId", appId)
+      new InngestConfigError(ERROR_MESSAGES.MISSING_APP_ID, "appId", appId),
     );
     return errors;
   }
@@ -37,14 +37,14 @@ function validateAppId(appId: string): InngestConfigError[] {
       new InngestConfigError(
         `appId must be between ${VALIDATION_RULES.APP_ID.minLength} and ${VALIDATION_RULES.APP_ID.maxLength} characters`,
         "appId",
-        appId
-      )
+        appId,
+      ),
     );
   }
 
   if (!VALIDATION_RULES.APP_ID.pattern.test(appId)) {
     errors.push(
-      new InngestConfigError(ERROR_MESSAGES.INVALID_APP_ID, "appId", appId)
+      new InngestConfigError(ERROR_MESSAGES.INVALID_APP_ID, "appId", appId),
     );
   }
 
@@ -62,8 +62,8 @@ function validateEndpoint(endpoint?: string): InngestConfigError[] {
       new InngestConfigError(
         ERROR_MESSAGES.INVALID_ENDPOINT,
         "endpoint",
-        endpoint
-      )
+        endpoint,
+      ),
     );
   }
 
@@ -86,8 +86,8 @@ function validateTimeout(timeout?: number): InngestConfigError[] {
         new InngestConfigError(
           ERROR_MESSAGES.INVALID_TIMEOUT,
           "timeout",
-          timeout
-        )
+          timeout,
+        ),
       );
     }
   }
@@ -111,8 +111,8 @@ function validateMaxBatchSize(maxBatchSize?: number): InngestConfigError[] {
         new InngestConfigError(
           ERROR_MESSAGES.INVALID_MAX_BATCH_SIZE,
           "maxBatchSize",
-          maxBatchSize
-        )
+          maxBatchSize,
+        ),
       );
     }
   }
@@ -130,7 +130,7 @@ function validateEnvironment(env?: string): InngestConfigError[] {
     const validEnvs = ["production", "development", "test"];
     if (!validEnvs.includes(env)) {
       errors.push(
-        new InngestConfigError(ERROR_MESSAGES.INVALID_ENVIRONMENT, "env", env)
+        new InngestConfigError(ERROR_MESSAGES.INVALID_ENVIRONMENT, "env", env),
       );
     }
   }
@@ -142,7 +142,7 @@ function validateEnvironment(env?: string): InngestConfigError[] {
  * Validates the retry configuration
  */
 function validateRetryConfig(
-  retry?: Partial<InngestModuleConfig["retry"]>
+  retry?: Partial<InngestModuleConfig["retry"]>,
 ): InngestConfigError[] {
   const errors: InngestConfigError[] = [];
 
@@ -157,8 +157,8 @@ function validateRetryConfig(
           new InngestConfigError(
             `retry.maxAttempts must be between ${VALIDATION_RULES.RETRY_ATTEMPTS.min} and ${VALIDATION_RULES.RETRY_ATTEMPTS.max}`,
             "retry.maxAttempts",
-            retry.maxAttempts
-          )
+            retry.maxAttempts,
+          ),
         );
       }
     }
@@ -173,8 +173,8 @@ function validateRetryConfig(
           new InngestConfigError(
             `retry.initialDelay must be between ${VALIDATION_RULES.RETRY_DELAY.min}ms and ${VALIDATION_RULES.RETRY_DELAY.max}ms`,
             "retry.initialDelay",
-            retry.initialDelay
-          )
+            retry.initialDelay,
+          ),
         );
       }
     }
@@ -189,8 +189,8 @@ function validateRetryConfig(
           new InngestConfigError(
             `retry.maxDelay must be between ${VALIDATION_RULES.RETRY_DELAY.min}ms and ${VALIDATION_RULES.RETRY_DELAY.max}ms`,
             "retry.maxDelay",
-            retry.maxDelay
-          )
+            retry.maxDelay,
+          ),
         );
       }
     }
@@ -205,8 +205,8 @@ function validateRetryConfig(
           new InngestConfigError(
             "retry.backoffMultiplier must be between 1 and 10",
             "retry.backoffMultiplier",
-            retry.backoffMultiplier
-          )
+            retry.backoffMultiplier,
+          ),
         );
       }
     }
@@ -241,23 +241,18 @@ export function validateConfig(config: InngestModuleConfig): ValidationResult {
  * Merged configuration type with required fields
  */
 export type MergedInngestConfig = Required<
-  Omit<
-    InngestModuleConfig,
-    "eventKey" | "signingKey" | "baseUrl" | "httpPlatform" | "serveMode"
-  >
+  Omit<InngestModuleConfig, "eventKey" | "signingKey" | "baseUrl">
 > & {
   eventKey?: string;
   signingKey?: string;
   baseUrl?: string;
-  httpPlatform?: string;
-  serveMode?: string;
 };
 
 /**
  * Merges user configuration with default values
  */
 export function mergeWithDefaults(
-  config: InngestModuleConfig
+  config: InngestModuleConfig,
 ): MergedInngestConfig {
   return {
     appId: config.appId,
@@ -277,11 +272,11 @@ export function mergeWithDefaults(
       maxDelay: config.retry?.maxDelay ?? 30000,
       backoffMultiplier: config.retry?.backoffMultiplier ?? 2,
     },
+    enableConnect: config.enableConnect ?? false,
     development: config.development || {
       enabled: false,
       disableSignatureVerification: false,
     },
-    httpPlatform: config.httpPlatform,
   };
 }
 

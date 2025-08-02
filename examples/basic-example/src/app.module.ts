@@ -43,11 +43,6 @@ import { UserController } from "./controllers/user.controller";
           maxBatchSize: parseInt(
             configService.get("INNGEST_MAX_BATCH_SIZE", "100")
           ),
-          connectionMethod: configService.get(
-            "INNGEST_CONNECTION_METHOD",
-            "both"
-          ) as any,
-          serveMode: "middleware" as any,
           development: {
             enabled: configService.get("NODE_ENV") === "development",
             disableSignatureVerification:
@@ -61,6 +56,7 @@ import { UserController } from "./controllers/user.controller";
             initialDelay: 1000,
             maxDelay: 30000,
           },
+          enableConnect: true,
         };
 
         return config;

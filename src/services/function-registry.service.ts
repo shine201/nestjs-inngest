@@ -8,6 +8,7 @@ import {
 import { InngestFunctionError } from "../errors";
 import { METADATA_KEYS, ERROR_MESSAGES } from "../constants";
 import { getInngestFunctionMetadata } from "../decorators/inngest-function.decorator";
+import { ExecutionContextService } from "./execution-context.service";
 
 /**
  * Registry for managing Inngest functions
@@ -17,18 +18,49 @@ export class FunctionRegistry implements OnModuleInit {
   private readonly logger = new Logger(FunctionRegistry.name);
   private readonly functions = new Map<string, InngestFunctionMetadata>();
   private readonly functionsByClass = new Map<any, InngestFunctionMetadata[]>();
-
+  private discoveryPromise: Promise<void> | null = null;
+  private isDiscovered = false;
   constructor(
     private readonly discoveryService: DiscoveryService,
     private readonly metadataScanner: MetadataScanner,
     private readonly moduleRef: ModuleRef,
   ) {}
+  async waitForDiscovery(): Promise<void> {
+    if (this.isDiscovered) {
+      return;
+    }
 
+    if (this.discoveryPromise) {
+      await this.discoveryPromise;
+      return;
+    }
+
+    // If onModuleInit hasn't been called yet, trigger discovery manually
+    this.discoveryPromise = this.discoverFunctions();
+    await this.discoveryPromise;
+    this.isDiscovered = true;
+    this.logger.log(
+      `Manual discovery completed: ${this.functions.size} function(s)`,
+    );
+  }
   /**
    * Initializes the registry by discovering all Inngest functions
    */
   async onModuleInit(): Promise<void> {
-    await this.discoverFunctions();
+    // Skip if already discovered (e.g., by manual trigger)
+    if (this.isDiscovered) {
+      this.logger.debug(
+        "Functions already discovered, skipping onModuleInit discovery",
+      );
+      return;
+    }
+
+    if (!this.discoveryPromise) {
+      this.discoveryPromise = this.discoverFunctions();
+    }
+
+    await this.discoveryPromise;
+    this.isDiscovered = true;
     this.logger.log(`Discovered ${this.functions.size} Inngest function(s)`);
   }
 
@@ -37,7 +69,6 @@ export class FunctionRegistry implements OnModuleInit {
    */
   private async discoverFunctions(): Promise<void> {
     const providers = this.discoveryService.getProviders();
-
     for (const wrapper of providers) {
       await this.scanProvider(wrapper);
     }
@@ -227,28 +258,26 @@ export class FunctionRegistry implements OnModuleInit {
       throw new Error(`Handler for function "${config.id}" is not a function`);
     }
 
-    // Build the function configuration for Inngest
+    // Build minimal function configuration (like official examples)
     const inngestConfig: any = {
       id: config.id,
       name: config.name,
     };
 
-    // Add optional configuration
-    if (config.concurrency !== undefined) {
-      inngestConfig.concurrency = config.concurrency;
-    }
-
-    if (config.rateLimit !== undefined) {
-      inngestConfig.rateLimit = config.rateLimit;
-    }
-
-    if (config.retries !== undefined) {
-      inngestConfig.retries = config.retries;
-    }
-
-    if (config.timeout !== undefined) {
-      inngestConfig.timeout = config.timeout;
-    }
+    // Skip optional configurations for now to match official examples
+    // TODO: Add support for advanced configurations later
+    // if (config.concurrency !== undefined) {
+    //   inngestConfig.concurrency = config.concurrency;
+    // }
+    // if (config.rateLimit !== undefined) {
+    //   inngestConfig.rateLimit = config.rateLimit;
+    // }
+    // if (config.retries !== undefined) {
+    //   inngestConfig.retries = config.retries;
+    // }
+    // if (config.timeout !== undefined) {
+    //   inngestConfig.timeout = config.timeout;
+    // }
 
     // Convert triggers to Inngest format
     const triggers = config.triggers.map((trigger) => {
@@ -270,19 +299,7 @@ export class FunctionRegistry implements OnModuleInit {
     // Create a wrapper handler that uses ExecutionContextService
     const wrappedHandler = async (event: any, ctx: any) => {
       try {
-        this.logger.debug(
-          `🔍 Raw event for ${config.id}:`,
-          JSON.stringify(event, null, 2),
-        );
-        this.logger.debug(
-          `🔍 Raw ctx for ${config.id}:`,
-          JSON.stringify(ctx, null, 2),
-        );
-
-        // Get ExecutionContextService from the module
-        const { ExecutionContextService } = await import(
-          "./execution-context.service"
-        );
+        this.logger.log(`🚀 Function ${config.id} execution STARTED`);
         const executionContextService = this.moduleRef.get(
           ExecutionContextService,
         );
@@ -303,9 +320,12 @@ export class FunctionRegistry implements OnModuleInit {
           );
 
         // Execute the function through ExecutionContextService
-        return await executionContextService.executeFunction(executionContext);
+        const result =
+          await executionContextService.executeFunction(executionContext);
+
+        return result;
       } catch (error) {
-        this.logger.error(`🔥 Function ${config.id} execution failed:`, error);
+        this.logger.error(`🔥 Function ${config.id} execution FAILED:`, error);
         throw error;
       }
     };

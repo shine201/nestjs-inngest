@@ -192,6 +192,13 @@ export class UserService {
 
     // Step 3: Track email sent event
     await step.run("track-email-sent", async () => {
+      logger.debug('emailResult:', JSON.stringify(emailResult, null, 2));
+      
+      if (!emailResult || !emailResult.messageId) {
+        logger.error('emailResult or messageId is missing:', emailResult);
+        throw new Error('Email result is missing or invalid');
+      }
+
       const emailSentEvent = UserEventFactory.emailSent({
         userId,
         emailType: "welcome",
@@ -205,7 +212,8 @@ export class UserService {
         },
       });
 
-      await step.sendEvent(emailSentEvent);
+      logger.debug('About to send event:', JSON.stringify(emailSentEvent, null, 2));
+      await step.sendEvent("send-email-event", emailSentEvent);
     });
 
     // Step 4: Send verification email
@@ -230,7 +238,7 @@ export class UserService {
             timestamp: new Date().toISOString(),
           });
 
-          await step.sendEvent(emailSentEvent);
+          await step.sendEvent("verification-email-sent", emailSentEvent);
         } else {
           const emailFailedEvent = UserEventFactory.emailFailed({
             userId,
@@ -241,7 +249,7 @@ export class UserService {
             timestamp: new Date().toISOString(),
           });
 
-          await step.sendEvent(emailFailedEvent);
+          await step.sendEvent("verification-email-failed", emailFailedEvent);
         }
       } catch (error) {
         logger.warn(
@@ -258,7 +266,7 @@ export class UserService {
           timestamp: new Date().toISOString(),
         });
 
-        await step.sendEvent(emailFailedEvent);
+        await step.sendEvent("verification-error-failed", emailFailedEvent);
       }
     });
 
@@ -353,7 +361,7 @@ export class UserService {
           metadata: { templateId: "retry-template" },
         });
 
-        await step.sendEvent(emailSentEvent);
+        await step.sendEvent("retry-email-sent", emailSentEvent);
       }
     });
 
@@ -397,7 +405,7 @@ export class UserService {
         timestamp: new Date().toISOString(),
       });
 
-      await step.sendEvent(analyticsEvent);
+      await step.sendEvent("user-verified-analytics", analyticsEvent);
     });
 
     // Step 2: Send congratulations email (optional)

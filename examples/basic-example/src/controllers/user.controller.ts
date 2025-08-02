@@ -437,7 +437,6 @@ export class UserController {
         description: 'Inngest webhook endpoint for function execution and introspection'
       };
 
-      const connectionMethods = this.inngestService.getConnectionMethods();
       const connectionStatus = this.inngestService.getConnectionStatus();
 
       return {
@@ -451,7 +450,6 @@ export class UserController {
             triggers: fn.config.triggers || []
           })),
           status: 'connected',
-          connectionMethods,
           connectionStatus: {
             connected: connectionStatus.connected,
             functions: connectionStatus.functions
