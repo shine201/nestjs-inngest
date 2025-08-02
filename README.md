@@ -48,8 +48,9 @@ import { InngestModule } from "nestjs-inngest";
   imports: [
     InngestModule.forRoot({
       appId: "my-nestjs-app",
-      signingKey: process.env.INNGEST_SIGNING_KEY,
-      eventKey: process.env.INNGEST_EVENT_KEY,
+      // signingKey and eventKey not required in local, but required in Inngest-Cloud or your self-host, you need add NODE_ENV === "development" into .env file
+      signingKey: process.env.INNGEST_SIGNING_KEY, // Inngest authenticates to me when calling my functions
+      eventKey: process.env.INNGEST_EVENT_KEY, // I authenticate to Inngest when sending events
     }),
   ],
 })
