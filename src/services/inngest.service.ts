@@ -25,6 +25,9 @@ import { FunctionRegistry } from "./function-registry.service";
 import { InngestFunctionMetadata } from "../interfaces/inngest-function.interface";
 import { ModuleRef } from "@nestjs/core";
 import { DevelopmentMode } from "../utils/development-mode";
+import { serve as ExpressServe } from "inngest/express";
+import { serve as FastifyServe, fastifyPlugin } from "inngest/fastify";
+import { connect } from "inngest/connect";
 
 /**
  * Retry options for event sending
@@ -587,7 +590,6 @@ export class InngestService implements OnApplicationBootstrap {
 
   private async connectToInngest(): Promise<void> {
     try {
-      const { connect } = await import("inngest/connect");
       const functionDefs = this.functionRegistry.createInngestFunctions();
 
       if (functionDefs.length === 0) {
@@ -719,17 +721,13 @@ export class InngestService implements OnApplicationBootstrap {
     );
 
     if (platform === "express") {
-      const { serve } = await import("inngest/express");
-
       // Create serve middleware with debugging
       this.logger.debug("About to call serve() from inngest/express...");
-      return serve({
+      return ExpressServe({
         client: this.inngestClient,
         functions: inngestFunctions,
       });
     } else if (platform === "fastify") {
-      const { fastifyPlugin } = await import("inngest/fastify");
-
       // Log basic function info
       this.logger.debug(
         `Functions created: ${inngestFunctions.map((f) => f.constructor.name).join(", ")}`,
@@ -745,6 +743,43 @@ export class InngestService implements OnApplicationBootstrap {
           functions: inngestFunctions,
         },
       };
+    } else {
+      throw new Error(`Unsupported platform: ${platform}`);
+    }
+  }
+
+  /**
+   * Create a controller-compatible handler for the specified platform
+   * This method is specifically designed for use in NestJS Controllers
+   */
+  async createControllerHandler(platform: "express" | "fastify") {
+    this.logger.debug(
+      `Starting createControllerHandler(${platform}), waiting for function discovery...`,
+    );
+
+    // Always wait for function discovery
+    await this.functionRegistry.waitForDiscovery();
+
+    // Ensure client is initialized
+    await this.ensureClientInitialized();
+
+    // Use existing method that creates proper Inngest function objects
+    const inngestFunctions = this.createInngestFunctionArray();
+
+    this.logger.log(
+      `🔍 Creating ${platform} controller handler with ${inngestFunctions.length} Inngest function objects`,
+    );
+
+    if (platform === "express") {
+      return ExpressServe({
+        client: this.inngestClient,
+        functions: inngestFunctions,
+      });
+    } else if (platform === "fastify") {
+      return FastifyServe({
+        client: this.inngestClient,
+        functions: inngestFunctions,
+      });
     } else {
       throw new Error(`Unsupported platform: ${platform}`);
     }

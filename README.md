@@ -16,6 +16,7 @@
 - 🎯 **Decorator-Based** - Simple `@InngestFunction` decorator for defining serverless functions
 - 🔄 **Automatic Discovery** - Zero-config function registration and discovery
 - 🎛️ **Unified API** - Single `createServe()` method works with both platforms
+- 🎮 **Controller Integration** - Custom NestJS controller support with `createControllerHandler()`
 
 ### Developer Experience
 
@@ -23,16 +24,7 @@
 - 📝 **Error Handling** - Comprehensive error reporting with detailed validation messages
 - 🐛 **Debug Logging** - Enhanced logging for development and troubleshooting
 - 🧪 **Basic Testing** - Simple testing utilities for unit and integration tests
-
-## Installation
-
-```bash
-npm install nestjs-inngest inngest
-# or
-yarn add nestjs-inngest inngest
-# or
-pnpm add nestjs-inngest inngest
-```
+- 🎯 **Flexible Integration** - Choose between automatic middleware/plugin or custom controller integration
 
 ## Quick Start
 
@@ -59,7 +51,9 @@ export class AppModule {}
 
 ### 2. HTTP Platform Setup
 
-This module supports both **Express** and **Fastify** HTTP platforms with a unified API:
+This module supports both **Express** and **Fastify** HTTP platforms with a unified API. You can choose between **automatic integration** (middleware/plugin) or **controller-based integration** for more control.
+
+#### Option A: Automatic Integration (Recommended)
 
 ```typescript
 import { NestFactory } from "@nestjs/core";
@@ -108,7 +102,175 @@ async function bootstrap() {
 bootstrap();
 ```
 
-> **Note:** The `createServe()` method provides a unified API that works with both platforms!
+#### Option B: Controller-Based Integration
+
+For more control over the Inngest webhook endpoint, you can use a custom NestJS controller:
+
+**Express Controller Example:**
+
+```typescript
+// express-inngest.controller.ts
+import { Controller, Post, Put, Get, Req, Res, Logger } from "@nestjs/common";
+import { InngestService } from "nestjs-inngest";
+
+@Controller("api/inngest")
+export class ExpressInngestController {
+  private readonly logger = new Logger(ExpressInngestController.name);
+
+  constructor(private readonly inngestService: InngestService) {}
+
+  @Get()
+  async handleIntrospection(
+    @Req() req: any,
+    @Res({ passthrough: false }) res: any
+  ) {
+    return this.handleInngestRequest(req, res, "GET");
+  }
+
+  @Post()
+  async handleWebhook(@Req() req: any, @Res({ passthrough: false }) res: any) {
+    return this.handleInngestRequest(req, res, "POST");
+  }
+
+  @Put()
+  async handlePutWebhook(
+    @Req() req: any,
+    @Res({ passthrough: false }) res: any
+  ) {
+    return this.handleInngestRequest(req, res, "PUT");
+  }
+
+  private async handleInngestRequest(req: any, res: any, method: string) {
+    try {
+      // Use the controller-specific handler for Express
+      const controllerHandler =
+        await this.inngestService.createControllerHandler("express");
+      return controllerHandler(req, res);
+    } catch (error) {
+      this.logger.error("Error in Inngest controller:", error);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
+}
+```
+
+**Fastify Controller Example:**
+
+```typescript
+// fastify-inngest.controller.ts
+import { Controller, Post, Put, Get, Req, Res, Logger } from "@nestjs/common";
+import { InngestService } from "nestjs-inngest";
+import type { FastifyRequest, FastifyReply } from "fastify";
+
+@Controller("api/inngest")
+export class FastifyInngestController {
+  private readonly logger = new Logger(FastifyInngestController.name);
+
+  constructor(private readonly inngestService: InngestService) {}
+
+  @Get()
+  async handleIntrospection(
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: false }) res: FastifyReply
+  ) {
+    return this.handleInngestRequest(req, res, "GET");
+  }
+
+  @Post()
+  async handleWebhook(
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: false }) res: FastifyReply
+  ) {
+    return this.handleInngestRequest(req, res, "POST");
+  }
+
+  @Put()
+  async handlePutWebhook(
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: false }) res: FastifyReply
+  ) {
+    return this.handleInngestRequest(req, res, "PUT");
+  }
+
+  private async handleInngestRequest(
+    req: FastifyRequest,
+    res: FastifyReply,
+    method: string
+  ) {
+    try {
+      // Use the controller-specific handler for Fastify
+      const controllerHandler =
+        await this.inngestService.createControllerHandler("fastify");
+      return await controllerHandler(req, res);
+    } catch (error) {
+      this.logger.error("Error in Fastify Inngest controller:", error);
+      return res.status(500).send({
+        error: "Internal Server Error",
+        message: error.message,
+      });
+    }
+  }
+}
+```
+
+**Main Application (Fastify with Controller):**
+
+```typescript
+// main.ts
+import { NestFactory } from "@nestjs/core";
+import { FastifyAdapter } from "@nestjs/platform-fastify";
+import type { NestFastifyApplication } from "@nestjs/platform-fastify";
+import { AppModule } from "./app.module";
+
+async function bootstrap() {
+  // Create Fastify application
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter()
+  );
+
+  await app.listen(3000, "0.0.0.0");
+  console.log(
+    "🚀 Fastify app with Inngest controller running on http://localhost:3000"
+  );
+  console.log("🎯 Inngest webhook: http://localhost:3000/api/inngest");
+}
+bootstrap();
+```
+
+**Don't forget to add the controller to your module:**
+
+```typescript
+// app.module.ts
+import { Module } from "@nestjs/common";
+import { InngestModule } from "nestjs-inngest";
+import { FastifyInngestController } from "./fastify-inngest.controller";
+
+@Module({
+  imports: [
+    InngestModule.forRoot({
+      appId: "my-fastify-app",
+      signingKey: process.env.INNGEST_SIGNING_KEY,
+      eventKey: process.env.INNGEST_EVENT_KEY,
+    }),
+  ],
+  controllers: [FastifyInngestController],
+})
+export class AppModule {}
+```
+
+#### Integration Method Comparison
+
+| Feature                | Automatic Integration           | Controller Integration                |
+| ---------------------- | ------------------------------- | ------------------------------------- |
+| **Setup Complexity**   | ✅ Simple                       | 🟡 Medium                             |
+| **Control Level**      | 🟡 Standard                     | ✅ Full Control                       |
+| **Custom Logic**       | ❌ Limited                      | ✅ Full Support                       |
+| **Error Handling**     | 🟡 Basic                        | ✅ Custom                             |
+| **Middleware Support** | ✅ Built-in                     | ✅ NestJS Decorators                  |
+| **Best For**           | Quick setup, standard use cases | Custom logic, advanced error handling |
+
+> **Note:** Both `createServe()` and `createControllerHandler()` methods provide a unified API that works with both Express and Fastify platforms!
 
 ### 3. Define Event Types (Optional but Recommended)
 
@@ -207,6 +369,16 @@ export class AuthService {
     return user;
   }
 }
+```
+
+## Installation
+
+```bash
+npm install nestjs-inngest inngest
+# or
+yarn add nestjs-inngest inngest
+# or
+pnpm add nestjs-inngest inngest
 ```
 
 ## Configuration
@@ -619,7 +791,11 @@ providers: [{ provide: InngestService, useValue: mockInngestService }];
 - **`@InngestFunction`**: Standard decorator for general-purpose event handling
 - **`@TypedInngestFunction`**: Type-safe decorator with strict TypeScript event validation
 - **`@OptimizedInngestFunction`**: Performance-optimized decorator for high-load applications
-- **`InngestService`**: Main service for sending events (`send()`, `getClient()`)
+- **`InngestService`**: Main service for sending events and creating integrations
+  - `send()` - Send events to Inngest
+  - `getClient()` - Get underlying Inngest client
+  - `createServe(platform)` - Create middleware/plugin integration
+  - `createControllerHandler(platform)` - Create controller-based integration
 - **Step Functions**: Use `step.run()`, `step.sleep()`, `step.sendEvent()` for reliable workflows
 - **Events**: Send events with `{ name: string, data: any }` structure
 

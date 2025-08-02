@@ -5,11 +5,72 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2025-08-02
+
+### 🚀 Controller Integration Support
+
+#### New Controller-Based Integration Pattern
+
+- **Controller Handler Support**: New `createControllerHandler()` method for custom NestJS controller integration
+  - Express controller support with `createControllerHandler('express')`
+  - Fastify controller support with `createControllerHandler('fastify')`
+  - Full compatibility with NestJS controller decorators (`@Get()`, `@Post()`, `@Put()`)
+- **Enhanced Flexibility**: Choose between middleware/plugin integration or controller-based integration
+- **Custom Endpoint Control**: Full control over Inngest webhook endpoints through NestJS controllers
+
+#### Example Applications
+
+- **Express Controller Example**: Complete example showing Express controller integration pattern
+- **Fastify Controller Example**: Complete example showing Fastify controller integration pattern
+- **Unified API**: Same `createControllerHandler()` method works for both Express and Fastify platforms
+
+#### Developer Experience Improvements
+
+- **Multiple Integration Patterns**: Support for both automatic integration and manual controller integration
+- **Better Documentation**: Enhanced examples and documentation for controller-based usage
+- **Consistent API**: Controller handlers follow the same unified API pattern as `createServe()`
+
+### ✨ New Features
+
+#### Controller Integration
+
+- **`createControllerHandler(platform)`**: New method specifically designed for NestJS controller usage
+- **Platform-Specific Handlers**: Optimized handlers for Express and Fastify controller environments
+- **Request/Response Delegation**: Proper delegation to Inngest handlers within NestJS controller context
+- **Error Handling**: Enhanced error handling within controller context
+
+#### Enhanced Examples
+
+- **Express Controller Pattern**: `/examples/express-controller-example` - Complete Express controller implementation
+- **Fastify Controller Pattern**: `/examples/fastify-controller-example` - Complete Fastify controller implementation
+- **Side-by-Side Comparison**: Easy comparison between middleware and controller integration patterns
+
+### 🔧 Technical Improvements
+
+- **Controller Compatibility**: Enhanced compatibility with NestJS controller lifecycle and decorators
+- **Request Handling**: Improved request/response handling for controller-based integration
+- **Platform Detection**: Better platform detection and handling within controller context
+- **Type Safety**: Full TypeScript support for controller integration patterns
+
+### 📚 Documentation
+
+- **Controller Integration Guide**: Comprehensive documentation for controller-based integration
+- **Platform Comparison**: Clear comparison between middleware/plugin and controller integration approaches
+- **Best Practices**: Guidance on when to use controller vs middleware integration
+- **Migration Examples**: Examples showing how to migrate from middleware to controller integration
+
+### 🧪 Testing
+
+- **Controller Examples**: Complete working examples for both Express and Fastify controller integration
+- **Integration Testing**: Enhanced testing for controller-based integration patterns
+- **Platform Coverage**: Comprehensive testing across both Express and Fastify controller patterns
+
 ## [1.2.2] - 2025-08-02
 
 ### 🚀 Priority Support & Developer Experience Improvements
 
 #### Priority Configuration Support
+
 - **Universal Priority Support**: All four decorators now support Inngest's native priority configuration
   - `@InngestFunction` - Simple numeric priority (1-4) and complex CEL expressions
   - `@TypedInngestFunction` - Enhanced with Priority union type for better TypeScript support
@@ -21,6 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Enhanced Type Safety**: New `Priority` union type and `PriorityConfig` interface for comprehensive type checking
 
 #### CronFunction Improvements
+
 - **Flattened Configuration**: CronFunction now supports top-level configuration properties for better developer experience
   - Before: `config: { retries: 2, timeout: 20000, priority: 3 }`
   - After: `retries: 2, timeout: 20000, priority: 3` (direct top-level properties)
@@ -28,14 +90,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Consistent API**: CronFunction now has the same developer experience as other decorators
 
 #### Development Features
+
 - **Signature Verification Control**: Enhanced development mode with `disableSignatureVerification` option
 - **Function Introspection**: New IntrospectionService for debugging and function metadata querying
   - Function discovery and metadata inspection
-  - Performance statistics and health monitoring  
+  - Performance statistics and health monitoring
   - Security-focused with sensitive data filtering
 - **Debug Endpoints**: Comprehensive debug controller with introspection capabilities
 
 #### Performance & Testing
+
 - **OptimizedInngestFunction Tests**: Complete test suite for all performance optimization features
 - **Priority Testing**: Comprehensive test coverage for all priority configuration scenarios
 - **Example Applications**: Enhanced basic-example with priority and performance testing
@@ -43,34 +107,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### ✨ New Features
 
 #### Priority System
+
 - **Native Inngest Integration**: Direct pass-through of priority configuration to Inngest SDK
 - **CEL Expression Support**: Advanced priority calculation using Common Expression Language
 - **Type-Safe Configuration**: Full TypeScript support with proper type hints and validation
 - **Performance Optimization**: Priority support in optimized decorators with caching
 
 #### Developer Tools
+
 - **Enhanced Debugging**: New debug endpoints for function introspection and testing
 - **Performance Monitoring**: Real-time statistics for decorator performance and cache usage
 - **Better Error Messages**: Improved validation and error reporting for configuration issues
 
 #### Configuration Improvements
+
 - **Simplified Setup**: CronFunction with flattened configuration for easier usage
 - **Development Mode**: Enhanced development features with signature verification bypass
 - **Better Defaults**: Intelligent defaults for development vs production environments
 
 ### 🔧 Technical Improvements
+
 - **Type System**: Enhanced TypeScript support with Priority union types and better inference
 - **Configuration Passing**: Fixed missing priority field in TypedInngestFunction normalization
 - **API Consistency**: Unified configuration approach across all four decorators
 - **Performance**: Optimized metadata processing and caching for better runtime performance
 
 ### 📚 Documentation
+
 - **Priority Examples**: Comprehensive examples for both simple and complex priority configurations
 - **Decorator Comparison**: Updated comparison table with priority support across all decorators
 - **Testing Guide**: Examples for testing priority-based function execution
 - **Best Practices**: Guidance on when to use simple vs complex priority configurations
 
 ### 🧪 Testing
+
 - **Priority Test Suite**: Complete test coverage for all priority configuration scenarios
 - **Performance Tests**: Comprehensive testing of OptimizedInngestFunction features
 - **Integration Tests**: End-to-end testing of priority-based function execution

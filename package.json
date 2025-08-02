@@ -1,6 +1,6 @@
 {
   "name": "nestjs-inngest",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Simple, unified NestJS integration for Inngest with multi-platform support and type safety",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -17,7 +17,9 @@
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
-    "start:dev": "npm run clean && pnpm run build && pnpm --filter nestjs-inngest-basic-example run start:dev",
+    "start:basic": "npm run clean && pnpm run build && pnpm --filter basic-example run start:dev",
+    "start:express": "npm run clean && pnpm run build && pnpm --filter express-controller-example run start:dev",
+    "start:fastify": "npm run clean && pnpm run build && pnpm --filter fastify-controller-example run start:dev",
     "prepublishOnly": "npm run clean && rm -f tsconfig.tsbuildinfo && npm run format && npm run build && npm run test:passWithNoTests && npm run typecheck",
     "test:passWithNoTests": "jest --passWithNoTests"
   },
