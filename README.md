@@ -15,7 +15,6 @@
 - 🔒 **Type Safety** - Full TypeScript support with typed event definitions and handlers
 - 🎯 **Decorator-Based** - Simple `@InngestFunction` decorator for defining serverless functions
 - 🔄 **Automatic Discovery** - Zero-config function registration and discovery
-- 🌐 **Webhook Support** - Built-in webhook handling with signature verification
 - 🔍 **Auto Platform Detection** - Automatically detects Express vs Fastify at runtime
 - 🎛️ **Unified API** - Single `createServe()` method works with both platforms
 
@@ -63,11 +62,14 @@ export class AppModule {}
 This module supports both **Express** and **Fastify** HTTP platforms with a unified API:
 
 ```typescript
-import { NestFactory } from '@nestjs/core';
-import { NestExpressApplication } from '@nestjs/platform-express';
-import { NestFastifyApplication, FastifyAdapter } from '@nestjs/platform-fastify';
-import { InngestService } from 'nestjs-inngest';
-import { AppModule } from './app.module';
+import { NestFactory } from "@nestjs/core";
+import { NestExpressApplication } from "@nestjs/platform-express";
+import {
+  NestFastifyApplication,
+  FastifyAdapter,
+} from "@nestjs/platform-fastify";
+import { InngestService } from "nestjs-inngest";
+import { AppModule } from "./app.module";
 
 async function bootstrap() {
   // Platform switch - change this to switch platforms
@@ -82,24 +84,24 @@ async function bootstrap() {
 
     // Setup Inngest Fastify plugin
     const inngestService = app.get(InngestService);
-    const { plugin, options } = await inngestService.createServe('fastify');
+    const { plugin, options } = await inngestService.createServe("fastify");
     await app.register(plugin, options);
-    
-    await app.listen(3000, '0.0.0.0');
+
+    await app.listen(3000, "0.0.0.0");
   } else {
     // Create Express application
     const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-      bodyParser: false
+      bodyParser: false,
     });
 
     // Configure Express body parser
-    app.useBodyParser('json', { limit: '10mb' });
+    app.useBodyParser("json", { limit: "10mb" });
 
     // Setup Inngest Express middleware
     const inngestService = app.get(InngestService);
-    const serveMiddleware = await inngestService.createServe('express');
-    app.use('/api/inngest', serveMiddleware);
-    
+    const serveMiddleware = await inngestService.createServe("express");
+    app.use("/api/inngest", serveMiddleware);
+
     await app.listen(3000);
   }
 }
@@ -128,10 +130,7 @@ Use the `@InngestFunction` decorator to define serverless functions:
 
 ```typescript
 import { Injectable } from "@nestjs/common";
-import {
-  InngestFunction,
-  InngestFunctionContext,
-} from "nestjs-inngest";
+import { InngestFunction, InngestFunctionContext } from "nestjs-inngest";
 
 @Injectable()
 export class UserService {
@@ -163,7 +162,7 @@ export class UserService {
     // Step 3: Send event notification
     await step.sendEvent("send-notification", {
       name: "user.notification",
-      data: { userId, type: "welcome", email }
+      data: { userId, type: "welcome", email },
     });
 
     return { success: true, userId, profileId: profile.id };
@@ -247,15 +246,15 @@ InngestModule.forRoot({
   appId: "my-app",
   signingKey: process.env.INNGEST_SIGNING_KEY,
   eventKey: process.env.INNGEST_EVENT_KEY,
-  
+
   // Connection mode (optional, default: false)
   enableConnect: false, // Set to true to use Inngest connect mode instead of serve mode
-  
+
   // Optional settings
   endpoint: "/api/inngest", // Webhook endpoint path
   isDev: process.env.NODE_ENV === "development",
   logger: true, // Enable debug logging
-  
+
   // Basic retry configuration
   retry: {
     maxAttempts: 3,
@@ -304,9 +303,7 @@ const mockInngestService = {
 };
 
 // Use in your test modules
-providers: [
-  { provide: InngestService, useValue: mockInngestService }
-]
+providers: [{ provide: InngestService, useValue: mockInngestService }];
 ```
 
 ## Key Concepts
