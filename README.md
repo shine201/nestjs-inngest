@@ -15,7 +15,6 @@
 - 🔒 **Type Safety** - Full TypeScript support with typed event definitions and handlers
 - 🎯 **Decorator-Based** - Simple `@InngestFunction` decorator for defining serverless functions
 - 🔄 **Automatic Discovery** - Zero-config function registration and discovery
-- 🔍 **Auto Platform Detection** - Automatically detects Express vs Fastify at runtime
 - 🎛️ **Unified API** - Single `createServe()` method works with both platforms
 
 ### Developer Experience

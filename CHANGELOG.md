@@ -12,7 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Platform Support
 
 - **Multi-Platform HTTP Support**: Unified support for both Express and Fastify HTTP platforms
-- **Automatic Platform Detection**: Runtime detection with zero configuration required
 - **Unified API**: Single `createServe()` method works with both platforms
 - **Simple Platform Switching**: Toggle between Express and Fastify with a single boolean variable
 
