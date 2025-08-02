@@ -26,6 +26,24 @@
 - 🧪 **Basic Testing** - Simple testing utilities for unit and integration tests
 - 🎯 **Flexible Integration** - Choose between automatic middleware/plugin or custom controller integration
 
+## Installation
+
+```bash
+npm install nestjs-inngest inngest
+# or
+yarn add nestjs-inngest inngest
+# or
+pnpm add nestjs-inngest inngest
+```
+
+## Run inngest in you local
+
+```npm
+
+npx inngest-cli@latest dev -u http://localhost:3000/api/inngest
+
+```
+
 ## Quick Start
 
 ### 1. Module Setup
@@ -369,16 +387,6 @@ export class AuthService {
     return user;
   }
 }
-```
-
-## Installation
-
-```bash
-npm install nestjs-inngest inngest
-# or
-yarn add nestjs-inngest inngest
-# or
-pnpm add nestjs-inngest inngest
 ```
 
 ## Configuration
