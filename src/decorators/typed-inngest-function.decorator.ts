@@ -9,7 +9,10 @@ import {
 } from "../interfaces/inngest-event.interface";
 import { InngestFunctionError } from "../errors";
 import { METADATA_KEYS, ERROR_MESSAGES } from "../constants";
-import { InngestFunctionConfig } from "../interfaces/inngest-function.interface";
+import {
+  InngestFunctionConfig,
+  Priority,
+} from "../interfaces/inngest-function.interface";
 
 /**
  * Type-safe Inngest function configuration
@@ -73,9 +76,11 @@ export interface TypedInngestFunctionConfig<
     };
 
     /**
-     * Priority level (1-4, where 1 is highest)
+     * Priority configuration for function execution
+     * - 1-4: Simple priority (1 = highest, 4 = lowest)
+     * - PriorityConfig: Complex expression-based priority
      */
-    priority?: 1 | 2 | 3 | 4;
+    priority?: Priority;
   };
 
   /**
@@ -112,6 +117,7 @@ function normalizeTypedFunctionConfig<
     timeout: config.config?.timeout ?? 30000,
     concurrency: config.config?.concurrency,
     rateLimit: config.config?.rateLimit,
+    priority: config.config?.priority,
   };
 }
 
@@ -234,13 +240,6 @@ function validateTypedFunctionConfig<
         );
       }
     }
-
-    if (priority !== undefined && ![1, 2, 3, 4].includes(priority)) {
-      throw new InngestFunctionError(
-        "Priority must be 1, 2, 3, or 4",
-        config.id,
-      );
-    }
   }
 }
 
@@ -352,17 +351,42 @@ export function createEventDecorator<
 }
 
 /**
+ * Flattened configuration interface for CronFunction decorator
+ */
+type FlattenedCronConfig = {
+  id: string;
+  name?: string;
+  cron: string;
+  timezone?: string;
+} & NonNullable<TypedInngestFunctionConfig["config"]>;
+
+/**
  * Type helper for creating cron-based decorators
  */
-export function CronFunction(
-  config: Omit<TypedInngestFunctionConfig, "triggers"> & {
-    cron: string;
-    timezone?: string;
-  },
-): MethodDecorator {
+export function CronFunction(config: FlattenedCronConfig): MethodDecorator {
+  const {
+    cron,
+    timezone,
+    retries,
+    timeout,
+    rateLimit,
+    concurrency,
+    batchEvents,
+    priority,
+    ...rest
+  } = config;
+
   const fullConfig: TypedInngestFunctionConfig = {
-    ...config,
-    triggers: [{ cron: config.cron, timezone: config.timezone }],
+    ...rest,
+    triggers: [{ cron, timezone }],
+    config: {
+      retries,
+      timeout,
+      rateLimit,
+      concurrency,
+      batchEvents,
+      priority,
+    },
   };
 
   return TypedInngestFunction(fullConfig);

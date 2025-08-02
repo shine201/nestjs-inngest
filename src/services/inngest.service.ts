@@ -24,6 +24,7 @@ import {
 import { FunctionRegistry } from "./function-registry.service";
 import { InngestFunctionMetadata } from "../interfaces/inngest-function.interface";
 import { ModuleRef } from "@nestjs/core";
+import { DevelopmentMode } from "../utils/development-mode";
 
 /**
  * Retry options for event sending
@@ -88,9 +89,26 @@ export class InngestService implements OnApplicationBootstrap {
       clientConfig.eventKey = this.config.eventKey;
     }
 
-    // Add signing key if provided (REQUIRED for serve mode in production)
-    if (this.config.signingKey) {
-      clientConfig.signingKey = this.config.signingKey;
+    // Handle signature verification configuration
+    const shouldDisableSignatureVerification =
+      DevelopmentMode.shouldDisableSignatureVerification();
+
+    if (shouldDisableSignatureVerification) {
+      this.logger.log(
+        "🔓 Signature verification disabled by development configuration",
+      );
+      // Force development mode when signature verification is disabled
+      clientConfig.isDev = true;
+      // Don't add signing key to disable verification
+    } else {
+      // Add signing key if provided (REQUIRED for serve mode in production)
+      if (this.config.signingKey) {
+        clientConfig.signingKey = this.config.signingKey;
+      } else if (!this.config.isDev) {
+        this.logger.warn(
+          "⚠️ No signing key provided for production mode. This may cause webhook verification failures.",
+        );
+      }
     }
 
     // Add base URL if provided

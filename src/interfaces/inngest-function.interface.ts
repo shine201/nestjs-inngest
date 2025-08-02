@@ -37,6 +37,30 @@ export interface ConcurrencyConfig {
 }
 
 /**
+ * Priority configuration for function execution
+ * Supports both simple numeric priority and complex expression-based priority
+ */
+export interface PriorityConfig {
+  /**
+   * CEL expression that returns an integer between -600 and 600
+   * Higher values = higher priority
+   *
+   * @example
+   * "event.data.account_type == 'enterprise' ? 120 : 0"
+   * "event.data.priority"
+   * "event.data.user_tier == 'premium' ? 60 : -30"
+   */
+  run: string;
+}
+
+/**
+ * Union type for priority configuration
+ * - number: Simple priority level (1-4, where 1 is highest)
+ * - PriorityConfig: Complex expression-based priority
+ */
+export type Priority = 1 | 2 | 3 | 4 | PriorityConfig;
+
+/**
  * Event trigger configuration
  */
 export interface EventTrigger {
@@ -96,6 +120,13 @@ export interface InngestFunctionConfig {
    * Timeout in milliseconds (defaults to 30000)
    */
   timeout?: number;
+
+  /**
+   * Priority configuration for function execution
+   * - 1-4: Simple priority (1 = highest, 4 = lowest)
+   * - PriorityConfig: Complex expression-based priority
+   */
+  priority?: Priority;
 }
 
 /**

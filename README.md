@@ -240,26 +240,125 @@ InngestModule.forRootAsync({
 
 ### Configuration Options
 
+#### Complete Parameter Reference
+
+```typescript
+// Synchronous configuration
+InngestModule.forRoot({
+  // === REQUIRED PARAMETERS ===
+  appId: "my-app", // 🔵 Inngest: Your app identifier
+
+  // === INNGEST CORE PARAMETERS ===
+  signingKey: process.env.INNGEST_SIGNING_KEY, // 🔵 Inngest: Webhook signature verification
+  eventKey: process.env.INNGEST_EVENT_KEY, // 🔵 Inngest: Event sending authentication
+  baseUrl: "https://api.inngest.com", // 🔵 Inngest: API base URL (defaults to Inngest cloud)
+  isDev: process.env.NODE_ENV === "development", // 🔵 Inngest: Development mode flag
+
+  // === CONNECTION METHODS ===
+  enableConnect: false, // 🟠 Extension: Use connect mode vs serve mode (default: false)
+
+  // === HTTP & ROUTING ===
+  endpoint: "/api/inngest", // 🟠 Extension: Webhook endpoint path (default: "/api/inngest")
+
+  // === PERFORMANCE & LIMITS ===
+  timeout: 30000, // 🔵 Inngest: Function timeout in ms (default: 30000)
+  maxBatchSize: 100, // 🟠 Extension: Max events per batch (default: 100)
+
+  // === DEVELOPMENT & DEBUGGING ===
+  logger: true, // 🟠 Extension: Enable detailed logging (default: true)
+  env: "development", // 🟠 Extension: Environment setting ("production"|"development"|"test")
+  strict: false, // 🟠 Extension: Enhanced validation (default: false)
+
+  // === RETRY CONFIGURATION ===
+  retry: {
+    maxAttempts: 3, // 🟠 Extension: Maximum retry attempts (default: 3)
+    initialDelay: 1000, // 🟠 Extension: Initial delay between retries in ms (default: 1000)
+    maxDelay: 30000, // 🟠 Extension: Maximum delay between retries in ms (default: 30000)
+    backoff: "exponential", // 🟠 Extension: Backoff strategy ("exponential"|"linear"|"fixed")
+    backoffMultiplier: 2, // 🟠 Extension: Backoff multiplier (default: 2)
+  },
+
+  // === DEVELOPMENT MODE (Advanced) ===
+  development: {
+    enabled: true, // 🟠 Extension: Enable development features
+    mockExternalCalls: false, // 🟠 Extension: Mock external service calls
+    localWebhookUrl: "http://localhost:3000", // 🟠 Extension: Custom local webhook URL
+    disableSignatureVerification: true, // 🟠 Extension: Skip signature validation
+    enableIntrospection: true, // 🟠 Extension: Function debugging tools
+    autoRegisterFunctions: true, // 🟠 Extension: Auto-discover functions
+    developmentTimeout: 60000, // 🟠 Extension: Extended timeout for debugging
+    enableStepDebugging: true, // 🟠 Extension: Step-by-step execution logs
+  },
+});
+// Inngest SDK
+if (process.env.NODE_ENV === "development" || process.env.INNGEST_DEV === "1") {
+  // auto disabled
+  signatureVerification = false;
+}
+
+// Asynchronous configuration with environment variables
+InngestModule.forRootAsync({
+  imports: [ConfigModule],
+  useFactory: async (configService: ConfigService) => ({
+    appId: configService.get("INNGEST_APP_ID"),
+    signingKey: configService.get("INNGEST_SIGNING_KEY"),
+    eventKey: configService.get("INNGEST_EVENT_KEY"),
+    isDev: configService.get("NODE_ENV") === "development",
+    enableConnect: configService.get("INNGEST_USE_CONNECT") === "true",
+    // ... other parameters
+  }),
+  inject: [ConfigService],
+});
+```
+
+#### Parameter Categories
+
+**🔵 Inngest Core Parameters** - Native Inngest SDK parameters:
+
+- `appId`, `signingKey`, `eventKey`, `baseUrl`, `isDev`, `timeout`
+
+**🟠 NestJS Extension Parameters** - Our enhancements for better NestJS integration:
+
+- Connection management: `enableConnect`, `endpoint`
+- Development tools: `logger`, `env`, `strict`, `development.*`
+- Performance: `maxBatchSize`, `retry.*`
+
+#### Quick Examples
+
+**Minimal Setup:**
+
 ```typescript
 InngestModule.forRoot({
   appId: "my-app",
   signingKey: process.env.INNGEST_SIGNING_KEY,
   eventKey: process.env.INNGEST_EVENT_KEY,
+});
+```
 
-  // Connection mode (optional, default: false)
-  enableConnect: false, // Set to true to use Inngest connect mode instead of serve mode
+**Development Setup:**
 
-  // Optional settings
-  endpoint: "/api/inngest", // Webhook endpoint path
-  isDev: process.env.NODE_ENV === "development",
-  logger: true, // Enable debug logging
-
-  // Basic retry configuration
-  retry: {
-    maxAttempts: 3,
-    initialDelay: 1000,
-    maxDelay: 30000,
+```typescript
+InngestModule.forRoot({
+  appId: "my-dev-app",
+  isDev: true,
+  development: {
+    enabled: true,
+    disableSignatureVerification: true,
   },
+});
+```
+
+**Production Setup:**
+
+```typescript
+InngestModule.forRoot({
+  appId: "my-prod-app",
+  signingKey: process.env.INNGEST_SIGNING_KEY,
+  eventKey: process.env.INNGEST_EVENT_KEY,
+  env: "production",
+  logger: false,
+  strict: true,
+  retry: { maxAttempts: 5 },
 });
 ```
 
@@ -291,6 +390,218 @@ async handleUserWorkflow(event: any, { step }: any) {
 }
 ```
 
+## Type Safety (Optional)
+
+For applications requiring strict type safety, use the typed decorator with your event schema:
+
+```typescript
+import { TypedInngestFunction, EventRegistry } from "nestjs-inngest";
+
+// Define your event types
+interface MyEventRegistry extends EventRegistry {
+  "user.created": { userId: string; email: string; name: string };
+  "order.completed": { orderId: string; amount: number; userId: string };
+  "email.sent": { to: string; subject: string; success: boolean };
+}
+
+@Injectable()
+export class UserService {
+  @TypedInngestFunction<MyEventRegistry, "user.created">({
+    id: "user-welcome-flow",
+    triggers: [{ event: "user.created" }],
+    config: {
+      retries: 3,
+      timeout: 30000,
+      priority: 1,
+    },
+  })
+  async handleUserCreated({
+    event,
+    step,
+  }: TypedEventContext<MyEventRegistry, "user.created">) {
+    // event.data is strictly typed as { userId: string; email: string; name: string }
+    const { userId, email, name } = event.data;
+
+    return await step.run("create-profile", async () => {
+      return this.createUserProfile({ userId, email, name });
+    });
+  }
+}
+```
+
+### Advanced Type Helpers
+
+Create event-specific decorators:
+
+```typescript
+import { createEventDecorator, CronFunction } from "nestjs-inngest";
+
+// Create a user-created specific decorator
+const UserCreatedFunction = createEventDecorator<MyEventRegistry, 'user.created'>('user.created');
+
+// Use the specific decorator
+@UserCreatedFunction({
+  id: "send-welcome-email",
+  name: "Send Welcome Email"
+})
+async sendWelcomeEmail({ event }: TypedEventContext<MyEventRegistry, 'user.created'>) {
+  // Automatically typed for user.created events
+}
+
+// Cron-based functions
+@CronFunction({
+  id: "daily-cleanup",
+  cron: "0 2 * * *", // 2 AM daily
+  timezone: "UTC"
+})
+async dailyCleanup() {
+  // Scheduled function
+}
+```
+
+## Performance Optimization (Optional)
+
+For applications with many functions or high-performance requirements, you can use the optimized decorator:
+
+```typescript
+import { OptimizedInngestFunction } from "nestjs-inngest";
+
+@Injectable()
+export class UserService {
+  @OptimizedInngestFunction({
+    id: "user-welcome-flow",
+    triggers: [{ event: "user.created" }],
+  })
+  async handleUserCreated(event: any, { step }: any) {
+    // Same functionality as @InngestFunction, but with:
+    // - Multi-layer caching for faster metadata processing
+    // - Memory optimization with object pooling
+    // - Batch validation and lookup capabilities
+    // - Performance monitoring and statistics
+
+    return await step.run("process-user", async () => {
+      return this.processUser(event.data);
+    });
+  }
+}
+```
+
+### Performance Monitoring
+
+Monitor decorator performance in high-load scenarios:
+
+```typescript
+import {
+  getDecoratorPerformanceStats,
+  clearOptimizedCaches,
+} from "nestjs-inngest";
+
+// Get performance statistics
+const stats = getDecoratorPerformanceStats();
+console.log({
+  registeredClasses: stats.registeredClasses,
+  totalFunctions: stats.totalFunctions,
+  cacheHitRate: stats.cacheHitRate,
+  memoryUsage: stats.memoryUsage,
+});
+
+// Clear caches when needed (e.g., during testing)
+clearOptimizedCaches();
+```
+
+## Decorator Comparison
+
+| Feature              | `@InngestFunction` | `@TypedInngestFunction`  | `@OptimizedInngestFunction` | `@CronFunction` |
+| -------------------- | ------------------ | ------------------------ | --------------------------- | --------------- |
+| **Type Safety**      | ❌ Basic (`any`)   | ✅ **Strict TypeScript** | ❌ Basic (`any`)            | ✅ **Typed Config** |
+| **Performance**      | 🟢 **Standard**    | 🟢 Standard              | ✅ **Optimized**            | 🟢 Standard |
+| **Event Validation** | 🟡 Runtime only    | ✅ **Compile + Runtime** | 🟡 Runtime only             | ✅ **Compile Time** |
+| **Memory Usage**     | 🟢 **Low**         | 🟢 Low                   | 🟡 Higher (caching)         | 🟢 **Low** |
+| **Complexity**       | 🟢 **Simple**      | 🟡 Medium                | 🟡 Medium                   | 🟢 **Simple** |
+| **IDE Support**      | 🟡 Basic           | ✅ **Full IntelliSense** | 🟡 Basic                    | ✅ **Full IntelliSense** |
+| **Trigger Types**    | ✅ Event + Cron    | ✅ Event + Cron          | ✅ Event + Cron             | 🎯 **Cron Only** |
+| **Best For**         | General use        | Type-safe apps           | High-performance apps       | **Scheduled tasks** |
+
+### When to Use Each Decorator
+
+**`@InngestFunction`** (Recommended for most cases)
+
+- ✅ General purpose applications
+- ✅ Quick prototyping and development
+- ✅ Simple event handling
+- ✅ When type safety is not critical
+
+**`@TypedInngestFunction`** (For type-safe applications)
+
+- ✅ Large applications with complex event schemas
+- ✅ Teams requiring strict type safety
+- ✅ When you want compile-time event validation
+- ✅ Better IDE support and IntelliSense
+
+**`@OptimizedInngestFunction`** (For high-performance scenarios)
+
+- ✅ Applications with 50+ Inngest functions
+- ✅ High-frequency function registration/discovery
+- ✅ Performance-critical environments
+- ✅ When you need performance monitoring
+
+**`@CronFunction`** (For scheduled tasks)
+
+- ✅ Pure cron-based scheduled tasks
+- ✅ When you want clean, explicit cron syntax
+- ✅ Type-safe cron configuration with timezone support
+- ✅ Priority and timeout configuration for scheduled jobs
+- ✅ Cleaner than manually configuring cron triggers
+
+### CronFunction Examples
+
+```typescript
+import { CronFunction } from "nestjs-inngest";
+
+@Injectable()
+export class ScheduledTasksService {
+  // Daily cleanup at 2 AM UTC
+  @CronFunction({
+    id: "daily-cleanup",
+    name: "Daily Cleanup Task",
+    cron: "0 2 * * *",
+    timezone: "UTC",
+    config: {
+      retries: 2,
+      timeout: 300000, // 5 minutes
+      priority: 1, // High priority
+    },
+  })
+  async dailyCleanup() {
+    // Cleanup logic here
+    return { cleaned: true, timestamp: new Date() };
+  }
+
+  // Weekly report every Monday at 9 AM
+  @CronFunction({
+    id: "weekly-report",
+    cron: "0 9 * * 1", // Monday 9 AM
+    timezone: "America/New_York",
+  })
+  async weeklyReport() {
+    // Generate weekly report
+  }
+
+  // High-frequency monitoring every 30 minutes
+  @CronFunction({
+    id: "health-check", 
+    cron: "*/30 * * * *", // Every 30 minutes
+    config: {
+      timeout: 5000,
+      retries: 1,
+    },
+  })
+  async healthCheck() {
+    // Health monitoring logic
+  }
+}
+```
+
 ## Testing
 
 Mock the `InngestService` for unit testing:
@@ -307,7 +618,9 @@ providers: [{ provide: InngestService, useValue: mockInngestService }];
 
 ## Key Concepts
 
-- **`@InngestFunction`**: Decorator to mark methods as Inngest functions
+- **`@InngestFunction`**: Standard decorator for general-purpose event handling
+- **`@TypedInngestFunction`**: Type-safe decorator with strict TypeScript event validation
+- **`@OptimizedInngestFunction`**: Performance-optimized decorator for high-load applications
 - **`InngestService`**: Main service for sending events (`send()`, `getClient()`)
 - **Step Functions**: Use `step.run()`, `step.sleep()`, `step.sendEvent()` for reliable workflows
 - **Events**: Send events with `{ name: string, data: any }` structure
@@ -317,14 +630,6 @@ providers: [{ provide: InngestService, useValue: mockInngestService }];
 - **Functions not registering**: Ensure services are imported in your module and decorated with `@Injectable()`
 - **Webhook errors**: Verify `signingKey` configuration and endpoint URL
 - **Debug mode**: Set `logger: true` and `isDev: true` for detailed logging
-
-## Examples
-
-```bash
-cd examples/basic-example
-npm install
-npm run start:dev
-```
 
 ## Planned for Future Versions
 

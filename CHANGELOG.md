@@ -5,6 +5,77 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2025-08-02
+
+### 🚀 Priority Support & Developer Experience Improvements
+
+#### Priority Configuration Support
+- **Universal Priority Support**: All four decorators now support Inngest's native priority configuration
+  - `@InngestFunction` - Simple numeric priority (1-4) and complex CEL expressions
+  - `@TypedInngestFunction` - Enhanced with Priority union type for better TypeScript support
+  - `@OptimizedInngestFunction` - Full priority support with performance optimizations
+  - `@CronFunction` - Flattened configuration for better developer experience
+- **Priority Types**: Complete TypeScript support for priority configuration
+  - Simple numeric priority: `priority: 1` (1 = highest, 4 = lowest)
+  - Complex CEL expressions: `priority: { run: "event.data.user.tier == 'enterprise' ? 120 : 0" }`
+- **Enhanced Type Safety**: New `Priority` union type and `PriorityConfig` interface for comprehensive type checking
+
+#### CronFunction Improvements
+- **Flattened Configuration**: CronFunction now supports top-level configuration properties for better developer experience
+  - Before: `config: { retries: 2, timeout: 20000, priority: 3 }`
+  - After: `retries: 2, timeout: 20000, priority: 3` (direct top-level properties)
+- **Better TypeScript Support**: Enhanced type definitions with proper IntelliSense for all configuration options
+- **Consistent API**: CronFunction now has the same developer experience as other decorators
+
+#### Development Features
+- **Signature Verification Control**: Enhanced development mode with `disableSignatureVerification` option
+- **Function Introspection**: New IntrospectionService for debugging and function metadata querying
+  - Function discovery and metadata inspection
+  - Performance statistics and health monitoring  
+  - Security-focused with sensitive data filtering
+- **Debug Endpoints**: Comprehensive debug controller with introspection capabilities
+
+#### Performance & Testing
+- **OptimizedInngestFunction Tests**: Complete test suite for all performance optimization features
+- **Priority Testing**: Comprehensive test coverage for all priority configuration scenarios
+- **Example Applications**: Enhanced basic-example with priority and performance testing
+
+### ✨ New Features
+
+#### Priority System
+- **Native Inngest Integration**: Direct pass-through of priority configuration to Inngest SDK
+- **CEL Expression Support**: Advanced priority calculation using Common Expression Language
+- **Type-Safe Configuration**: Full TypeScript support with proper type hints and validation
+- **Performance Optimization**: Priority support in optimized decorators with caching
+
+#### Developer Tools
+- **Enhanced Debugging**: New debug endpoints for function introspection and testing
+- **Performance Monitoring**: Real-time statistics for decorator performance and cache usage
+- **Better Error Messages**: Improved validation and error reporting for configuration issues
+
+#### Configuration Improvements
+- **Simplified Setup**: CronFunction with flattened configuration for easier usage
+- **Development Mode**: Enhanced development features with signature verification bypass
+- **Better Defaults**: Intelligent defaults for development vs production environments
+
+### 🔧 Technical Improvements
+- **Type System**: Enhanced TypeScript support with Priority union types and better inference
+- **Configuration Passing**: Fixed missing priority field in TypedInngestFunction normalization
+- **API Consistency**: Unified configuration approach across all four decorators
+- **Performance**: Optimized metadata processing and caching for better runtime performance
+
+### 📚 Documentation
+- **Priority Examples**: Comprehensive examples for both simple and complex priority configurations
+- **Decorator Comparison**: Updated comparison table with priority support across all decorators
+- **Testing Guide**: Examples for testing priority-based function execution
+- **Best Practices**: Guidance on when to use simple vs complex priority configurations
+
+### 🧪 Testing
+- **Priority Test Suite**: Complete test coverage for all priority configuration scenarios
+- **Performance Tests**: Comprehensive testing of OptimizedInngestFunction features
+- **Integration Tests**: End-to-end testing of priority-based function execution
+- **Example Applications**: Enhanced examples demonstrating priority usage patterns
+
 ## [1.2.1] - 2025-08-02
 
 ### 🚀 Initial Core Release

@@ -15,7 +15,7 @@ import {
 import { InngestService } from "./services/inngest.service";
 import { FunctionRegistry } from "./services/function-registry.service";
 import { INNGEST_CONFIG } from "./constants";
-import { ExecutionContextService } from "./services";
+import { ExecutionContextService, IntrospectionService } from "./services";
 
 /**
  * Main module for Inngest integration with NestJS
@@ -77,11 +77,13 @@ export class InngestModule {
         InngestService,
         FunctionRegistry,
         ExecutionContextService,
+        IntrospectionService,
       ],
       exports: [
         InngestService,
         FunctionRegistry,
         ExecutionContextService,
+        IntrospectionService,
         INNGEST_CONFIG,
       ],
       global: false,
@@ -120,11 +122,13 @@ export class InngestModule {
         InngestService,
         FunctionRegistry,
         ExecutionContextService,
+        IntrospectionService,
       ],
       exports: [
         InngestService,
         FunctionRegistry,
         ExecutionContextService,
+        IntrospectionService,
         INNGEST_CONFIG,
       ],
       global: false,

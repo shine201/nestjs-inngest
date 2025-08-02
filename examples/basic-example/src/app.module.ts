@@ -6,9 +6,14 @@ import { InngestModule } from "nestjs-inngest";
 import { UserService } from "./services/user.service";
 import { EmailService } from "./services/email.service";
 import { AnalyticsService } from "./services/analytics.service";
+import { PerformanceTestService } from "./services/performance-test.service";
+import { PriorityTestService } from "./services/priority-test.service";
 
 // Controllers
 import { UserController } from "./controllers/user.controller";
+import { PerformanceTestController } from "./controllers/performance-test.controller";
+import { DebugController } from "./controllers/debug.controller";
+import { PriorityTestController } from "./controllers/priority-test.controller";
 
 /**
  * Main application module
@@ -27,49 +32,85 @@ import { UserController } from "./controllers/user.controller";
       envFilePath: [".env.local", ".env"],
     }),
 
-    // Inngest module with async configuration
-    InngestModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => {
-        const config = {
-          appId: configService.get("INNGEST_APP_ID", "basic-example-app"),
-          signingKey: configService.get("INNGEST_SIGNING_KEY"),
-          eventKey: configService.get("INNGEST_EVENT_KEY"),
-          env: configService.get("NODE_ENV", "development") as any,
-          isDev: configService.get("NODE_ENV") === "development",
-          endpoint: "/api/inngest-serve",
-          logger: configService.get("NODE_ENV") !== "production",
-          timeout: parseInt(configService.get("INNGEST_TIMEOUT", "30000")),
-          maxBatchSize: parseInt(
-            configService.get("INNGEST_MAX_BATCH_SIZE", "100")
-          ),
-          development: {
-            enabled: configService.get("NODE_ENV") === "development",
-            disableSignatureVerification:
-              configService.get("NODE_ENV") === "development",
-          },
-          retry: {
-            maxAttempts: parseInt(
-              configService.get("INNGEST_MAX_RETRIES", "3")
-            ),
-            backoff: "exponential" as const,
-            initialDelay: 1000,
-            maxDelay: 30000,
-          },
-          enableConnect: true,
-        };
-
-        return config;
+    // Inngest module with simple configuration
+    InngestModule.forRoot({
+      appId: "basic-example-app",
+      // signingKey: process.env.INNGEST_SIGNING_KEY,
+      // eventKey: process.env.INNGEST_EVENT_KEY,
+      env: "development",
+      isDev: true,
+      endpoint: "/api/inngest",
+      logger: true,
+      timeout: 30000,
+      maxBatchSize: 100,
+      development: {
+        enabled: true,
+        disableSignatureVerification: true,
+        enableIntrospection: true,
       },
-      inject: [ConfigService],
+      retry: {
+        maxAttempts: 3,
+        backoff: "exponential" as const,
+        initialDelay: 1000,
+        maxDelay: 30000,
+      },
     }),
+
+    // Commented out async configuration for testing
+    // InngestModule.forRootAsync({
+    //   imports: [ConfigModule],
+    //   useFactory: async (configService: ConfigService) => {
+    //     const config = {
+    //       appId: configService.get("INNGEST_APP_ID", "basic-example-app"),
+    //       signingKey: configService.get("INNGEST_SIGNING_KEY"),
+    //       eventKey: configService.get("INNGEST_EVENT_KEY"),
+    //       env: configService.get("NODE_ENV", "development") as any,
+    //       isDev: configService.get("NODE_ENV") === "development",
+    //       endpoint: "/api/inngest-serve",
+    //       logger: configService.get("NODE_ENV") !== "production",
+    //       timeout: parseInt(configService.get("INNGEST_TIMEOUT", "30000")),
+    //       maxBatchSize: parseInt(
+    //         configService.get("INNGEST_MAX_BATCH_SIZE", "100")
+    //       ),
+    //       development: {
+    //         enabled: configService.get("NODE_ENV") === "development",
+    //         disableSignatureVerification:
+    //           configService.get("NODE_ENV") === "development",
+    //       },
+    //       retry: {
+    //         maxAttempts: parseInt(
+    //           configService.get("INNGEST_MAX_RETRIES", "3")
+    //         ),
+    //         backoff: "exponential" as const,
+    //         initialDelay: 1000,
+    //         maxDelay: 30000,
+    //       },
+    //       enableConnect: false,
+    //     };
+
+    //     return config;
+    //   },
+    //   inject: [ConfigService],
+    // }),
   ],
 
-  controllers: [UserController],
+  controllers: [UserController, PerformanceTestController, DebugController, PriorityTestController],
 
-  providers: [UserService, EmailService, AnalyticsService],
+  providers: [
+    UserService,
+    EmailService,
+    AnalyticsService,
+    PerformanceTestService,
+    PriorityTestService,
+  ],
 
-  exports: [UserService, EmailService, AnalyticsService],
+  exports: [
+    UserService,
+    EmailService,
+    AnalyticsService,
+    PerformanceTestService,
+    PriorityTestService,
+  ],
 })
 export class AppModule {}
 
