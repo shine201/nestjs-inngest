@@ -330,8 +330,9 @@ InngestModule.forRootAsync({
 ```typescript
 InngestModule.forRoot({
   appId: "my-app",
-  signingKey: process.env.INNGEST_SIGNING_KEY,
-  eventKey: process.env.INNGEST_EVENT_KEY,
+  // signingKey and eventKey not required in local, but required in Inngest-Cloud or your self-host, you need add NODE_ENV === "development" into .env file
+  signingKey: process.env.INNGEST_SIGNING_KEY, // Inngest authenticates to me when calling my functions
+  eventKey: process.env.INNGEST_EVENT_KEY, // I authenticate to Inngest when sending events
 });
 ```
 
@@ -511,16 +512,16 @@ clearOptimizedCaches();
 
 ## Decorator Comparison
 
-| Feature              | `@InngestFunction` | `@TypedInngestFunction`  | `@OptimizedInngestFunction` | `@CronFunction` |
-| -------------------- | ------------------ | ------------------------ | --------------------------- | --------------- |
-| **Type Safety**      | ❌ Basic (`any`)   | ✅ **Strict TypeScript** | ❌ Basic (`any`)            | ✅ **Typed Config** |
-| **Performance**      | 🟢 **Standard**    | 🟢 Standard              | ✅ **Optimized**            | 🟢 Standard |
-| **Event Validation** | 🟡 Runtime only    | ✅ **Compile + Runtime** | 🟡 Runtime only             | ✅ **Compile Time** |
-| **Memory Usage**     | 🟢 **Low**         | 🟢 Low                   | 🟡 Higher (caching)         | 🟢 **Low** |
-| **Complexity**       | 🟢 **Simple**      | 🟡 Medium                | 🟡 Medium                   | 🟢 **Simple** |
+| Feature              | `@InngestFunction` | `@TypedInngestFunction`  | `@OptimizedInngestFunction` | `@CronFunction`          |
+| -------------------- | ------------------ | ------------------------ | --------------------------- | ------------------------ |
+| **Type Safety**      | ❌ Basic (`any`)   | ✅ **Strict TypeScript** | ❌ Basic (`any`)            | ✅ **Typed Config**      |
+| **Performance**      | 🟢 **Standard**    | 🟢 Standard              | ✅ **Optimized**            | 🟢 Standard              |
+| **Event Validation** | 🟡 Runtime only    | ✅ **Compile + Runtime** | 🟡 Runtime only             | ✅ **Compile Time**      |
+| **Memory Usage**     | 🟢 **Low**         | 🟢 Low                   | 🟡 Higher (caching)         | 🟢 **Low**               |
+| **Complexity**       | 🟢 **Simple**      | 🟡 Medium                | 🟡 Medium                   | 🟢 **Simple**            |
 | **IDE Support**      | 🟡 Basic           | ✅ **Full IntelliSense** | 🟡 Basic                    | ✅ **Full IntelliSense** |
-| **Trigger Types**    | ✅ Event + Cron    | ✅ Event + Cron          | ✅ Event + Cron             | 🎯 **Cron Only** |
-| **Best For**         | General use        | Type-safe apps           | High-performance apps       | **Scheduled tasks** |
+| **Trigger Types**    | ✅ Event + Cron    | ✅ Event + Cron          | ✅ Event + Cron             | 🎯 **Cron Only**         |
+| **Best For**         | General use        | Type-safe apps           | High-performance apps       | **Scheduled tasks**      |
 
 ### When to Use Each Decorator
 
@@ -589,7 +590,7 @@ export class ScheduledTasksService {
 
   // High-frequency monitoring every 30 minutes
   @CronFunction({
-    id: "health-check", 
+    id: "health-check",
     cron: "*/30 * * * *", // Every 30 minutes
     config: {
       timeout: 5000,
